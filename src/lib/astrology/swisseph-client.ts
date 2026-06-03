@@ -25,37 +25,13 @@ async function getSwe() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const SwissEph: any = (mod as any).default ?? mod;
       const swe = new SwissEph();
-      // Override file locations so emscripten fetches from /wasm/ instead of
-      // resolving against the bundled module URL inside node_modules.
-      const originalInit = swe.initSwissEph.bind(swe);
-      swe.initSwissEph = async function patchedInit() {
-        // Monkey-patch by setting a stub configuration before calling original
-        // — original ignores prior moduleConfig, so we replicate it here.
-        const wasmMod = await import("swisseph-wasm/wasm/swisseph.js" as string);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const WasmSwissEph: any = (wasmMod as any).default ?? wasmMod;
-        const moduleConfig = {
-          locateFile: (path: string) => {
-            if (path.endsWith(".data") || path.endsWith(".wasm")) {
-              return `/wasm/${path}`;
-            }
-            return path;
-          },
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (swe as any).SweModule = await WasmSwissEph(moduleConfig);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Mod = (swe as any).SweModule;
-        if (!Mod.HEAP32) Mod.HEAP32 = new Int32Array(Mod.HEAPF64.buffer);
-        swe.set_ephe_path("sweph");
-      };
-      // If the default init works (browser path), great; otherwise fall back
-      // to our patched version.
-      try {
-        await originalInit();
-      } catch {
-        await swe.initSwissEph();
-      }
+      // The library's built-in initSwissEph resolves the .wasm/.data files
+      // relative to its own module URL via import.meta.url — Vite serves
+      // those correctly from node_modules in dev and from the asset bundle
+      // in production. Do NOT import "swisseph-wasm/wasm/swisseph.js" — the
+      // package's exports map only exposes ".", so subpath imports break
+      // the build with: Missing "./wasm/swisseph.js" specifier.
+      await swe.initSwissEph();
       return swe;
     })();
   }
