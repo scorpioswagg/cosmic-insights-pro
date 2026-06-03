@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { geocodePlace, type GeocodeResult } from "@/lib/astrology/geocoding";
-import { timezoneAt, tzOffsetHoursFor } from "@/lib/astrology/timezone";
 import type { BirthInput } from "@/lib/astrology/types";
 import { KYLE_MERRITT_INPUT } from "@/lib/astrology/validation";
 
@@ -47,7 +46,7 @@ export function BirthForm({ onSubmit, busy }: Props) {
     setResults([]);
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!name.trim() || !date || !time) {
@@ -58,18 +57,23 @@ export function BirthForm({ onSubmit, busy }: Props) {
       setError("Search and select a birth location.");
       return;
     }
-    const tz = picked.timezone || timezoneAt(picked.latitude, picked.longitude);
-    const offset = tzOffsetHoursFor(`${date}T${time}`, tz);
-    const input: BirthInput = {
-      name: name.trim(),
-      date, time,
-      place: `${picked.name}${picked.admin1 ? ", " + picked.admin1 : ""}, ${picked.country}`,
-      latitude: picked.latitude,
-      longitude: picked.longitude,
-      timezone: tz,
-      tzOffsetHours: offset,
-    };
-    onSubmit(input);
+    try {
+      const { timezoneAt, tzOffsetHoursFor } = await import("@/lib/astrology/timezone");
+      const tz = picked.timezone || timezoneAt(picked.latitude, picked.longitude);
+      const offset = tzOffsetHoursFor(`${date}T${time}`, tz);
+      const input: BirthInput = {
+        name: name.trim(),
+        date, time,
+        place: `${picked.name}${picked.admin1 ? ", " + picked.admin1 : ""}, ${picked.country}`,
+        latitude: picked.latitude,
+        longitude: picked.longitude,
+        timezone: tz,
+        tzOffsetHours: offset,
+      };
+      onSubmit(input);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   return (
