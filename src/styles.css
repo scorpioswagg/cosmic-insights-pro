@@ -62,26 +62,40 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  /* Cosmic Blueprint — deep midnight night sky with antique gold accents */
+  --radius: 0.75rem;
+  --background: oklch(0.14 0.04 280);
+  --foreground: oklch(0.96 0.015 80);
+  --card: oklch(0.18 0.045 278);
+  --card-foreground: oklch(0.96 0.015 80);
+  --popover: oklch(0.17 0.05 278);
+  --popover-foreground: oklch(0.96 0.015 80);
+  --primary: oklch(0.82 0.15 85);       /* antique gold */
+  --primary-foreground: oklch(0.14 0.04 280);
+  --secondary: oklch(0.32 0.08 278);
+  --secondary-foreground: oklch(0.96 0.015 80);
+  --muted: oklch(0.24 0.05 278);
+  --muted-foreground: oklch(0.72 0.04 80);
+  --accent: oklch(0.62 0.18 305);       /* cosmic violet */
+  --accent-foreground: oklch(0.98 0.01 80);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 80);
+  --border: oklch(0.32 0.06 278 / 60%);
+  --input: oklch(0.26 0.05 278);
+  --ring: oklch(0.82 0.15 85);
+  --success: oklch(0.72 0.16 155);
+  --gold: oklch(0.82 0.15 85);
+  --gold-soft: oklch(0.72 0.13 85);
+  --nebula: oklch(0.55 0.22 295);
+  --aurora: oklch(0.7 0.18 195);
+  --gradient-cosmic: radial-gradient(ellipse at top, oklch(0.28 0.12 295 / 0.6), transparent 60%),
+                     radial-gradient(ellipse at bottom right, oklch(0.32 0.16 240 / 0.45), transparent 55%),
+                     linear-gradient(180deg, oklch(0.10 0.035 280), oklch(0.16 0.05 278));
+  --gradient-gold: linear-gradient(135deg, oklch(0.88 0.14 90), oklch(0.72 0.16 70));
+  --shadow-gold: 0 10px 40px -10px oklch(0.82 0.15 85 / 0.35);
+  --shadow-deep: 0 20px 60px -20px oklch(0.05 0.05 280 / 0.8);
+  --font-display: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -138,7 +152,50 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background: var(--gradient-cosmic);
+    background-attachment: fixed;
     color: var(--color-foreground);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
+}
+
+@layer utilities {
+  .text-gold { color: var(--gold); }
+  .bg-gold { background: var(--gradient-gold); }
+  .border-gold { border-color: var(--gold); }
+  .shadow-gold { box-shadow: var(--shadow-gold); }
+  .shadow-deep { box-shadow: var(--shadow-deep); }
+  .glass {
+    background: oklch(0.18 0.045 278 / 0.65);
+    backdrop-filter: blur(14px);
+    border: 1px solid oklch(0.82 0.15 85 / 0.18);
+  }
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .starfield::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, white, transparent),
+      radial-gradient(1px 1px at 75% 70%, white, transparent),
+      radial-gradient(1px 1px at 40% 80%, oklch(0.95 0.05 80), transparent),
+      radial-gradient(2px 2px at 60% 20%, white, transparent),
+      radial-gradient(1px 1px at 90% 45%, oklch(0.9 0.1 200), transparent),
+      radial-gradient(1px 1px at 10% 60%, white, transparent),
+      radial-gradient(1px 1px at 50% 50%, oklch(0.95 0.05 80), transparent);
+    opacity: 0.55;
+    z-index: 0;
   }
 }
