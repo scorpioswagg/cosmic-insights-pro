@@ -4,7 +4,6 @@ import { BirthForm } from "@/components/astrology/BirthForm";
 import { ChartWheel } from "@/components/astrology/ChartWheel";
 import { PlacementsTable } from "@/components/astrology/PlacementsTable";
 import { ValidationBadge } from "@/components/astrology/ValidationBadge";
-import { calculateChart } from "@/lib/astrology/swisseph-client";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 
 export const Route = createFileRoute("/")({
@@ -27,6 +26,10 @@ function Index() {
   async function handleCalc(input: BirthInput) {
     setBusy(true); setError(null);
     try {
+      if (typeof window === "undefined") {
+        throw new Error("Chart calculation can only run in the browser.");
+      }
+      const { calculateChart } = await import("@/lib/astrology/swisseph-client");
       const c = await calculateChart(input);
       setChart(c);
       requestAnimationFrame(() => {
