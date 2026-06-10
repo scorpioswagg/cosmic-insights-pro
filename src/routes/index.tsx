@@ -4,6 +4,7 @@ import { BirthForm } from "@/components/astrology/BirthForm";
 import { ChartWheel } from "@/components/astrology/ChartWheel";
 import { PlacementsTable } from "@/components/astrology/PlacementsTable";
 import { ValidationBadge } from "@/components/astrology/ValidationBadge";
+import { ReportsPanel } from "@/components/astrology/ReportsPanel";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 
 export const Route = createFileRoute("/")({
@@ -113,6 +114,8 @@ function Index() {
                 ))}
               </div>
             </div>
+
+            <ReportsPanel chart={chart} />
           </section>
         )}
 
