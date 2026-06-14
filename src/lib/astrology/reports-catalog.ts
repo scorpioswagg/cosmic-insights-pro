@@ -275,6 +275,94 @@ export const REPORTS: ReportDefinition[] = [
     systemFraming:
       "Reverent, poetic, but grounded. Differentiate genuine mysticism from escapism.",
   },
+  {
+    id: "year-ahead",
+    title: "Year Ahead Forecast",
+    tagline: "Transits, progressions, and the year's defining storylines.",
+    icon: "❍",
+    category: "Timing",
+    targetWords: 1300,
+    sections: [
+      "Opening Snapshot of the Year",
+      "Outer-Planet Transits to Your Chart",
+      "Jupiter & Saturn — Growth and Discipline",
+      "Progressed Moon Phase",
+      "Eclipse Season Themes",
+      "Month-by-Month Highlights",
+      "Guiding Practices for the Year",
+    ],
+    systemFraming:
+      "Forecast tone — confident but non-deterministic. Frame transits as openings and invitations, never as fate.",
+  },
+  {
+    id: "friendship-community",
+    title: "Friendship & Community",
+    tagline: "11th house, Uranus, and your chosen circle.",
+    icon: "♒",
+    category: "Relationships",
+    targetWords: 900,
+    sections: [
+      "The 11th House — Your Tribe",
+      "Uranus — The Outsider Signature",
+      "Friendship Patterns Through Venus & Mercury",
+      "Group Roles You Naturally Take",
+      "How to Build Lasting Community",
+    ],
+    systemFraming:
+      "Warm, social, modern tone. Honor both introverted and extroverted chart signatures.",
+  },
+  {
+    id: "health-vitality",
+    title: "Health & Vitality",
+    tagline: "6th house, Mars, Sun, and your body's wisdom.",
+    icon: "✚",
+    category: "Growth",
+    targetWords: 1000,
+    sections: [
+      "The 6th House — Daily Rhythm",
+      "Sun — Core Vitality",
+      "Mars — Physical Drive",
+      "Stress Signatures in Your Chart",
+      "Practices for Embodied Wellbeing",
+    ],
+    systemFraming:
+      "Holistic, body-positive tone. Never diagnose; speak in terms of tendencies and supportive practices.",
+  },
+  {
+    id: "intuition-psychic",
+    title: "Intuition & Psychic Gifts",
+    tagline: "Moon, Neptune, 8th & 12th houses, and the unseen senses.",
+    icon: "👁",
+    category: "Esoteric",
+    targetWords: 1000,
+    sections: [
+      "Your Intuitive Channel (Moon & Neptune)",
+      "Psychic Inheritance (12th House)",
+      "Depth Perception (8th House)",
+      "Aspects That Sharpen or Cloud Intuition",
+      "Practices to Trust Your Inner Knowing",
+    ],
+    systemFraming:
+      "Mystical yet grounded. Distinguish intuition from anxiety; honor lineage without making it spooky.",
+  },
+  {
+    id: "manifestation-power",
+    title: "Manifestation & Personal Power",
+    tagline: "Sun, Mars, Pluto, 1st & 10th houses — your engine of becoming.",
+    icon: "✦",
+    category: "Growth",
+    targetWords: 1100,
+    sections: [
+      "The Sun — Your Will",
+      "Mars — Your Engine",
+      "Pluto — Deep Transformation",
+      "The Ascendant — How You Enter Rooms",
+      "The Midheaven — Your Visible Becoming",
+      "A Manifestation Protocol Built From Your Chart",
+    ],
+    systemFraming:
+      "Empowering, modern, ritual-aware tone. Anchor every claim in chart specifics — never generic law-of-attraction.",
+  },
 ];
 
 export function getReport(id: string): ReportDefinition | undefined {

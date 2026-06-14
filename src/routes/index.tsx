@@ -3,7 +3,6 @@ import { useState } from "react";
 import { BirthForm } from "@/components/astrology/BirthForm";
 import { ChartWheel } from "@/components/astrology/ChartWheel";
 import { PlacementsTable } from "@/components/astrology/PlacementsTable";
-import { ValidationBadge } from "@/components/astrology/ValidationBadge";
 import { ReportsPanel } from "@/components/astrology/ReportsPanel";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 
@@ -100,8 +99,6 @@ function Index() {
               </div>
               <PlacementsTable chart={chart} />
             </div>
-
-            <ValidationBadge chart={chart} />
 
             <div className="glass rounded-2xl p-6 shadow-deep">
               <h3 className="font-display text-xl text-gradient-gold mb-4">Aspects ({chart.aspects.length})</h3>
