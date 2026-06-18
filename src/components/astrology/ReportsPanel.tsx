@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import type { ChartCalculation } from "@/lib/astrology/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GeneratedReport {
   reportId: string;
@@ -25,6 +26,11 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     if (reports[reportId]) return;
     setLoadingId(reportId);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        const { error: signInError } = await supabase.auth.signInAnonymously();
+        if (signInError) throw new Error(`Sign-in failed: ${signInError.message}`);
+      }
       const chartPayload = {
         input: {
           name: chart.input.name,
