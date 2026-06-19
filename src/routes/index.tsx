@@ -24,6 +24,32 @@ function Index() {
   const [chart, setChart] = useState<ChartCalculation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ? { email: data.user.email || undefined, name: data.user.user_metadata?.full_name } : null);
+      setAuthLoading(false);
+    });
+  }, []);
+
+  async function handleGoogleSignIn() {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setError(`Sign-in failed: ${result.error.message}`);
+    }
+    if (result.redirected) {
+      return;
+    }
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setUser(null);
+  }
 
   async function handleCalc(input: BirthInput) {
     setBusy(true); setError(null);
