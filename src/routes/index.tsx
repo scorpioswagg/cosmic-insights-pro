@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BirthForm } from "@/components/astrology/BirthForm";
 import { ChartWheel } from "@/components/astrology/ChartWheel";
 import { PlacementsTable } from "@/components/astrology/PlacementsTable";
 import { ReportsPanel } from "@/components/astrology/ReportsPanel";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 
 export const Route = createFileRoute("/")({
