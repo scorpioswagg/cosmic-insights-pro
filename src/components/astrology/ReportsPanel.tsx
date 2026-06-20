@@ -78,6 +78,22 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
 
   const active = activeId ? reports[activeId] : null;
 
+  function downloadReport(r: GeneratedReport) {
+    const safe = r.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const content = `# ${r.title}\n\nFor ${chart.input.name}\nGenerated ${new Date(r.generatedAt).toLocaleString()}\n\n---\n\n${r.markdown}`;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safe}-${chart.input.name.replace(/\s+/g, "-")}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  const generatedList = REPORTS.filter((r) => reports[r.id]).map((r) => reports[r.id]);
+
   return (
     <section className="space-y-8">
       <div className="text-center">
@@ -97,30 +113,62 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
               const isDone = !!reports[r.id];
               const isActive = activeId === r.id;
               return (
-                <button
+                <div
                   key={r.id}
-                  onClick={() => generate(r.id)}
-                  disabled={isLoading}
-                  className={`text-left glass rounded-xl p-5 border transition group ${
+                  className={`text-left glass rounded-xl p-5 border transition group flex flex-col ${
                     isActive ? "border-gold/60 shadow-gold" : "border-border/40 hover:border-gold/40"
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="text-3xl text-gold">{r.icon}</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {isLoading ? "generating…" : isDone ? "✓ ready" : "tap to generate"}
-                    </span>
-                  </div>
-                  <h4 className="font-display text-lg text-foreground group-hover:text-gradient-gold">
-                    {r.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{r.tagline}</p>
-                </button>
+                  <button
+                    onClick={() => generate(r.id)}
+                    disabled={isLoading}
+                    className="text-left flex-1"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-3xl text-gold">{r.icon}</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {isLoading ? "generating…" : isDone ? "✓ ready" : "tap to generate"}
+                      </span>
+                    </div>
+                    <h4 className="font-display text-lg text-foreground group-hover:text-gradient-gold">
+                      {r.title}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{r.tagline}</p>
+                  </button>
+                  {isDone && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadReport(reports[r.id]);
+                      }}
+                      className="mt-3 text-[11px] uppercase tracking-widest text-gold border border-gold/40 rounded-md py-1.5 hover:bg-gold/10 transition"
+                    >
+                      ↓ Download .md
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
         </div>
       ))}
+
+      {generatedList.length > 1 && (
+        <div className="glass rounded-xl p-5 border border-gold/30 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-gold">Your Library</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {generatedList.length} reports ready to download.
+            </p>
+          </div>
+          <button
+            onClick={() => generatedList.forEach(downloadReport)}
+            className="text-xs uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition"
+          >
+            ↓ Download All
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="glass rounded-xl p-4 border border-destructive/50 text-destructive text-sm">
@@ -133,12 +181,20 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
           id={`report-${active.reportId}`}
           className="glass rounded-2xl p-8 md:p-10 shadow-deep"
         >
-          <header className="mb-6 pb-6 border-b border-border/40">
-            <p className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Cosmic Blueprint Report</p>
-            <h2 className="font-display text-3xl text-gradient-gold">{active.title}</h2>
-            <p className="text-xs text-muted-foreground/80 mt-2 font-mono">
-              For {chart.input.name} · generated {new Date(active.generatedAt).toLocaleString()}
-            </p>
+          <header className="mb-6 pb-6 border-b border-border/40 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Cosmic Blueprint Report</p>
+              <h2 className="font-display text-3xl text-gradient-gold">{active.title}</h2>
+              <p className="text-xs text-muted-foreground/80 mt-2 font-mono">
+                For {chart.input.name} · generated {new Date(active.generatedAt).toLocaleString()}
+              </p>
+            </div>
+            <button
+              onClick={() => downloadReport(active)}
+              className="text-xs uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition whitespace-nowrap"
+            >
+              ↓ Download .md
+            </button>
           </header>
           <div className="prose-cosmic">
             <ReactMarkdown>{active.markdown}</ReactMarkdown>
