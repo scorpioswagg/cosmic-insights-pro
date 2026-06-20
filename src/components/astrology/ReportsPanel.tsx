@@ -181,12 +181,20 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
           id={`report-${active.reportId}`}
           className="glass rounded-2xl p-8 md:p-10 shadow-deep"
         >
-          <header className="mb-6 pb-6 border-b border-border/40">
-            <p className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Cosmic Blueprint Report</p>
-            <h2 className="font-display text-3xl text-gradient-gold">{active.title}</h2>
-            <p className="text-xs text-muted-foreground/80 mt-2 font-mono">
-              For {chart.input.name} · generated {new Date(active.generatedAt).toLocaleString()}
-            </p>
+          <header className="mb-6 pb-6 border-b border-border/40 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Cosmic Blueprint Report</p>
+              <h2 className="font-display text-3xl text-gradient-gold">{active.title}</h2>
+              <p className="text-xs text-muted-foreground/80 mt-2 font-mono">
+                For {chart.input.name} · generated {new Date(active.generatedAt).toLocaleString()}
+              </p>
+            </div>
+            <button
+              onClick={() => downloadReport(active)}
+              className="text-xs uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition whitespace-nowrap"
+            >
+              ↓ Download .md
+            </button>
           </header>
           <div className="prose-cosmic">
             <ReactMarkdown>{active.markdown}</ReactMarkdown>
