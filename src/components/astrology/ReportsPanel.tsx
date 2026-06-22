@@ -235,10 +235,23 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
             )}
           </h3>
           {category === "Intimacy (18+)" && (
-            <p className="text-xs text-muted-foreground/80 mb-3 max-w-2xl">
-              Mature, sex-positive, consent-forward readings. Generating any report below confirms
-              you are 18 or older.
-            </p>
+            <>
+              <p className="text-xs text-muted-foreground/80 mb-3 max-w-2xl">
+                Mature, sex-positive, consent-forward readings. Generating any report below confirms
+                you are 18 or older.
+              </p>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                  onClick={generateAndDownloadAllIntimacyPdfs}
+                  disabled={!!loadingId}
+                  className="text-[11px] uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition disabled:opacity-50"
+                >
+                  {loadingId && intimacyReports.some((r) => r.id === loadingId)
+                    ? "Generating intimacy PDFs…"
+                    : "↓ Download all intimacy reports (PDF)"}
+                </button>
+              </div>
+            </>
           )}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((r) => {
@@ -269,14 +282,32 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{r.tagline}</p>
                   </button>
                   {isDone && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); downloadReport(reports[r.id]); }}
+                        className="text-[11px] uppercase tracking-widest text-gold border border-gold/40 rounded-md py-1.5 hover:bg-gold/10 transition"
+                      >
+                        ↓ .md
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); downloadReportPdf(reports[r.id]); }}
+                        className="text-[11px] uppercase tracking-widest text-gold border border-gold/40 rounded-md py-1.5 hover:bg-gold/10 transition"
+                      >
+                        ↓ PDF
+                      </button>
+                    </div>
+                  )}
+                  {!isDone && r.adult && (
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        downloadReport(reports[r.id]);
+                        await generate(r.id);
+                        const ready = reports[r.id];
+                        if (ready) downloadReportPdf(ready);
                       }}
-                      className="mt-3 text-[11px] uppercase tracking-widest text-gold border border-gold/40 rounded-md py-1.5 hover:bg-gold/10 transition"
+                      className="mt-3 text-[11px] uppercase tracking-widest text-gold/80 border border-gold/30 rounded-md py-1.5 hover:bg-gold/10 transition"
                     >
-                      ↓ Download .md
+                      ↓ Generate & download PDF
                     </button>
                   )}
                 </div>
