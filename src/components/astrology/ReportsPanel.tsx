@@ -299,13 +299,12 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                   )}
                   {!isDone && r.adult && (
                     <button
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
-                        await generate(r.id);
-                        const ready = reports[r.id];
-                        if (ready) downloadReportPdf(ready);
+                        void generateOneAndDownloadPdf(r.id);
                       }}
-                      className="mt-3 text-[11px] uppercase tracking-widest text-gold/80 border border-gold/30 rounded-md py-1.5 hover:bg-gold/10 transition"
+                      disabled={isLoading}
+                      className="mt-3 text-[11px] uppercase tracking-widest text-gold/80 border border-gold/30 rounded-md py-1.5 hover:bg-gold/10 transition disabled:opacity-50"
                     >
                       ↓ Generate & download PDF
                     </button>
