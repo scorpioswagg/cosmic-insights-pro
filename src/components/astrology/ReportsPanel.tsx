@@ -5,6 +5,7 @@ import type { ChartCalculation } from "@/lib/astrology/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { jsPDF } from "jspdf";
 
 interface GeneratedReport {
   reportId: string;
@@ -100,6 +101,115 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function downloadReportPdf(r: GeneratedReport) {
+    const safe = r.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 54;
+    const maxW = pageW - margin * 2;
+    let y = margin;
+
+    const writeLine = (text: string, size: number, opts: { bold?: boolean; color?: [number, number, number]; gap?: number } = {}) => {
+      doc.setFont("times", opts.bold ? "bold" : "normal");
+      doc.setFontSize(size);
+      const [cr, cg, cb] = opts.color ?? [30, 30, 40];
+      doc.setTextColor(cr, cg, cb);
+      const lines = doc.splitTextToSize(text, maxW) as string[];
+      const lh = size * 1.35;
+      for (const ln of lines) {
+        if (y + lh > pageH - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(ln, margin, y);
+        y += lh;
+      }
+      y += opts.gap ?? 4;
+    };
+
+    // Cover header
+    writeLine(r.title, 22, { bold: true, color: [120, 90, 30], gap: 6 });
+    writeLine(`For ${chart.input.name}`, 11, { color: [90, 90, 100] });
+    writeLine(`Generated ${new Date(r.generatedAt).toLocaleString()}`, 10, { color: [120, 120, 130], gap: 14 });
+
+    // Render markdown line-by-line (lightweight)
+    const lines = r.markdown.split("\n");
+    for (const raw of lines) {
+      const line = raw.replace(/\r$/, "");
+      if (!line.trim()) { y += 6; continue; }
+      if (line.startsWith("### ")) {
+        writeLine(line.slice(4), 13, { bold: true, color: [40, 40, 60], gap: 4 });
+      } else if (line.startsWith("## ")) {
+        y += 6;
+        writeLine(line.slice(3), 16, { bold: true, color: [120, 90, 30], gap: 6 });
+      } else if (line.startsWith("# ")) {
+        writeLine(line.slice(2), 18, { bold: true, color: [120, 90, 30], gap: 8 });
+      } else if (/^\s*[-*]\s+/.test(line)) {
+        writeLine("• " + line.replace(/^\s*[-*]\s+/, ""), 11, { color: [40, 40, 60] });
+      } else if (line.startsWith("> ")) {
+        writeLine(line.slice(2), 11, { color: [100, 80, 120] });
+      } else {
+        const clean = line.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+        writeLine(clean, 11, { color: [40, 40, 60] });
+      }
+    }
+
+    doc.save(`${safe}-${chart.input.name.replace(/\s+/g, "-")}.pdf`);
+  }
+
+  const intimacyReports = REPORTS.filter((r) => r.adult);
+
+  async function generateAndDownloadAllIntimacyPdfs() {
+    setError(null);
+    if (!adultUnlocked) {
+      const ok = typeof window !== "undefined" &&
+        window.confirm(
+          "You are about to generate and download every 18+ Intimacy report as PDFs. Confirm you are 18 or older."
+        );
+      if (!ok) return;
+      setAdultUnlocked(true);
+    }
+    for (const def of intimacyReports) {
+      let report = reports[def.id];
+      if (!report) {
+        setLoadingId(def.id);
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!sessionData.session) {
+            const { error: signInError } = await supabase.auth.signInAnonymously();
+            if (signInError) throw new Error(`Sign-in failed: ${signInError.message}`);
+          }
+          const chartPayload = {
+            input: {
+              name: chart.input.name, date: chart.input.date, time: chart.input.time,
+              place: chart.input.place, latitude: chart.input.latitude,
+              longitude: chart.input.longitude, timezone: chart.input.timezone,
+            },
+            julianDayUT: chart.julianDayUT, utcIso: chart.utcIso,
+            ascendant: chart.ascendant, midheaven: chart.midheaven,
+            bodies: chart.bodies.map((b) => ({
+              name: b.name, longitude: b.longitude, sign: b.sign,
+              signDegree: b.signDegree, house: b.house, retrograde: b.retrograde, speed: b.speed,
+            })),
+            houses: chart.houses,
+            aspects: chart.aspects.slice(0, 80).map((a) => ({
+              a: a.a, b: a.b, type: a.type, angle: a.angle, orb: a.orb, applying: a.applying,
+            })),
+          };
+          report = await runReport({ data: { reportId: def.id, chart: chartPayload } });
+          setReports((prev) => ({ ...prev, [def.id]: report! }));
+        } catch (e) {
+          setError(`${def.title}: ${(e as Error).message || "generation failed"}`);
+          setLoadingId(null);
+          return;
+        }
+        setLoadingId(null);
+      }
+      downloadReportPdf(report);
+    }
   }
 
   const generatedList = REPORTS.filter((r) => reports[r.id]).map((r) => reports[r.id]);
