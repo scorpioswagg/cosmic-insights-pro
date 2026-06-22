@@ -162,6 +162,56 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
 
   const intimacyReports = REPORTS.filter((r) => r.adult);
 
+  async function ensureReport(reportId: string): Promise<GeneratedReport | null> {
+    if (reports[reportId]) return reports[reportId];
+    setLoadingId(reportId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        const { error: signInError } = await supabase.auth.signInAnonymously();
+        if (signInError) throw new Error(`Sign-in failed: ${signInError.message}`);
+      }
+      const chartPayload = {
+        input: {
+          name: chart.input.name, date: chart.input.date, time: chart.input.time,
+          place: chart.input.place, latitude: chart.input.latitude,
+          longitude: chart.input.longitude, timezone: chart.input.timezone,
+        },
+        julianDayUT: chart.julianDayUT, utcIso: chart.utcIso,
+        ascendant: chart.ascendant, midheaven: chart.midheaven,
+        bodies: chart.bodies.map((b) => ({
+          name: b.name, longitude: b.longitude, sign: b.sign,
+          signDegree: b.signDegree, house: b.house, retrograde: b.retrograde, speed: b.speed,
+        })),
+        houses: chart.houses,
+        aspects: chart.aspects.slice(0, 80).map((a) => ({
+          a: a.a, b: a.b, type: a.type, angle: a.angle, orb: a.orb, applying: a.applying,
+        })),
+      };
+      const result = await runReport({ data: { reportId, chart: chartPayload } });
+      setReports((prev) => ({ ...prev, [reportId]: result }));
+      return result;
+    } catch (e) {
+      setError((e as Error).message || "Report generation failed.");
+      return null;
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  async function generateOneAndDownloadPdf(reportId: string) {
+    setError(null);
+    const def = REPORTS.find((r) => r.id === reportId);
+    if (def?.adult && !adultUnlocked) {
+      const ok = typeof window !== "undefined" &&
+        window.confirm("This is an 18+ Intimacy report. Confirm you are 18 or older.");
+      if (!ok) return;
+      setAdultUnlocked(true);
+    }
+    const report = await ensureReport(reportId);
+    if (report) downloadReportPdf(report);
+  }
+
   async function generateAndDownloadAllIntimacyPdfs() {
     setError(null);
     if (!adultUnlocked) {
@@ -173,41 +223,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
       setAdultUnlocked(true);
     }
     for (const def of intimacyReports) {
-      let report = reports[def.id];
-      if (!report) {
-        setLoadingId(def.id);
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (!sessionData.session) {
-            const { error: signInError } = await supabase.auth.signInAnonymously();
-            if (signInError) throw new Error(`Sign-in failed: ${signInError.message}`);
-          }
-          const chartPayload = {
-            input: {
-              name: chart.input.name, date: chart.input.date, time: chart.input.time,
-              place: chart.input.place, latitude: chart.input.latitude,
-              longitude: chart.input.longitude, timezone: chart.input.timezone,
-            },
-            julianDayUT: chart.julianDayUT, utcIso: chart.utcIso,
-            ascendant: chart.ascendant, midheaven: chart.midheaven,
-            bodies: chart.bodies.map((b) => ({
-              name: b.name, longitude: b.longitude, sign: b.sign,
-              signDegree: b.signDegree, house: b.house, retrograde: b.retrograde, speed: b.speed,
-            })),
-            houses: chart.houses,
-            aspects: chart.aspects.slice(0, 80).map((a) => ({
-              a: a.a, b: a.b, type: a.type, angle: a.angle, orb: a.orb, applying: a.applying,
-            })),
-          };
-          report = await runReport({ data: { reportId: def.id, chart: chartPayload } });
-          setReports((prev) => ({ ...prev, [def.id]: report! }));
-        } catch (e) {
-          setError(`${def.title}: ${(e as Error).message || "generation failed"}`);
-          setLoadingId(null);
-          return;
-        }
-        setLoadingId(null);
-      }
+      const report = await ensureReport(def.id);
+      if (!report) return;
       downloadReportPdf(report);
     }
   }
