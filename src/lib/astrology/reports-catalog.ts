@@ -3,7 +3,9 @@ export interface ReportDefinition {
   title: string;
   tagline: string;
   icon: string;
-  category: "Core" | "Relationships" | "Growth" | "Timing" | "Vocation" | "Esoteric";
+  category: "Core" | "Relationships" | "Growth" | "Timing" | "Vocation" | "Esoteric" | "Intimacy (18+)";
+  /** Marks reports with mature/explicit sexual content. UI should gate behind an 18+ confirmation. */
+  adult?: boolean;
   /** Sections the LLM must produce, in order. */
   sections: string[];
   /** Approx target length in words for the whole report. */
