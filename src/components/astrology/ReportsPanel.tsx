@@ -19,9 +19,19 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [reports, setReports] = useState<Record<string, GeneratedReport>>({});
   const [error, setError] = useState<string | null>(null);
+  const [adultUnlocked, setAdultUnlocked] = useState(false);
 
   async function generate(reportId: string) {
     setError(null);
+    const def = REPORTS.find((r) => r.id === reportId);
+    if (def?.adult && !adultUnlocked) {
+      const ok = typeof window !== "undefined" &&
+        window.confirm(
+          "This is an 18+ Intimacy report with explicit sexual content. Confirm you are 18 or older and want to proceed."
+        );
+      if (!ok) return;
+      setAdultUnlocked(true);
+    }
     setActiveId(reportId);
     if (reports[reportId]) return;
     setLoadingId(reportId);
@@ -98,7 +108,7 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     <section className="space-y-8">
       <div className="text-center">
         <p className="text-xs uppercase tracking-[0.35em] text-gold mb-2">Premium Reports</p>
-        <h2 className="font-display text-4xl text-gradient-gold">15 Astrological Reports</h2>
+        <h2 className="font-display text-4xl text-gradient-gold">{REPORTS.length} Astrological Reports</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
           Each report is generated from your real Swiss Ephemeris chart data — no templates, no guesswork.
         </p>
@@ -106,7 +116,20 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
 
       {Object.entries(grouped).map(([category, items]) => (
         <div key={category}>
-          <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">{category}</h3>
+          <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3 flex items-center gap-2">
+            <span>{category}</span>
+            {category === "Intimacy (18+)" && (
+              <span className="text-[10px] tracking-widest text-gold/80 border border-gold/40 rounded-full px-2 py-0.5 normal-case">
+                Explicit · 18+
+              </span>
+            )}
+          </h3>
+          {category === "Intimacy (18+)" && (
+            <p className="text-xs text-muted-foreground/80 mb-3 max-w-2xl">
+              Mature, sex-positive, consent-forward readings. Generating any report below confirms
+              you are 18 or older.
+            </p>
+          )}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((r) => {
               const isLoading = loadingId === r.id;
