@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -6,44 +7,52 @@ interface Props {
 }
 
 export function WelcomeModal({ open, onDismiss }: Props) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
-    }
-  }, [open]);
-
-  if (!open) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="welcome-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 overflow-y-auto"
-      style={{
-        background:
-          "radial-gradient(ellipse at top, oklch(0.18 0.07 280 / 0.95), oklch(0.08 0.04 270 / 0.98))",
-        backdropFilter: "blur(8px)",
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onDismiss();
       }}
     >
-      <div className="absolute inset-0 pointer-events-none starfield opacity-60" aria-hidden />
-      <div
-        className={`relative w-full max-w-2xl glass rounded-3xl shadow-deep border border-gold/20 my-auto transition-all duration-700 ${
-          mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
-      >
-        <div className="p-8 md:p-12 space-y-6 max-h-[85vh] overflow-y-auto">
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className="fixed inset-0 z-[100] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at top, oklch(0.18 0.07 280 / 0.95), oklch(0.08 0.04 270 / 0.98))",
+            backdropFilter: "blur(8px)",
+          }}
+        />
+        <DialogPrimitive.Content
+          aria-describedby="welcome-description"
+          onOpenAutoFocus={(e) => {
+            // Let Radix manage focus trap; default focuses first focusable.
+            // Prevent jumping to the close (X) icon by focusing the primary CTA.
+            e.preventDefault();
+            const primary = document.getElementById("welcome-begin-btn");
+            primary?.focus();
+          }}
+          className="fixed inset-0 z-[101] flex items-center justify-center p-4 md:p-8 overflow-y-auto outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        >
+          <div className="absolute inset-0 pointer-events-none starfield opacity-60" aria-hidden="true" />
+          <div className="relative w-full max-w-2xl glass rounded-3xl shadow-deep border border-gold/20 my-auto">
+            <DialogPrimitive.Close
+              aria-label="Close welcome message"
+              className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-background/40 text-gold transition hover:bg-background/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+              <span className="sr-only">Close welcome message</span>
+            </DialogPrimitive.Close>
+            <div className="p-8 md:p-12 space-y-6 max-h-[85vh] overflow-y-auto">
           <div className="text-center space-y-3">
             <div className="inline-block text-4xl md:text-5xl text-gold animate-pulse" aria-hidden>✦</div>
             <p className="text-xs uppercase tracking-[0.4em] text-gold">A Personal Welcome</p>
-            <h1 id="welcome-title" className="font-display text-3xl md:text-5xl text-gradient-gold leading-tight">
+            <DialogPrimitive.Title className="font-display text-3xl md:text-5xl text-gradient-gold leading-tight">
               Welcome to The Cosmic Blueprint
-            </h1>
+            </DialogPrimitive.Title>
           </div>
 
+          <DialogPrimitive.Description id="welcome-description" asChild>
           <div className="space-y-4 text-muted-foreground leading-relaxed text-[0.97rem] md:text-base">
             <p>First, thank you.</p>
             <p>
@@ -101,6 +110,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
               </p>
             </div>
           </div>
+          </DialogPrimitive.Description>
 
           <div className="pt-4 border-t border-border/40 text-center">
             <p className="italic font-display text-gold/90 text-base md:text-lg leading-relaxed">
@@ -110,14 +120,18 @@ export function WelcomeModal({ open, onDismiss }: Props) {
 
           <div className="pt-4 flex justify-center">
             <button
+              id="welcome-begin-btn"
+              type="button"
               onClick={onDismiss}
-              className="px-8 py-3 rounded-xl bg-gold text-primary-foreground font-display tracking-[0.2em] uppercase text-sm shadow-gold hover:opacity-95 transition"
+              className="min-h-11 px-8 py-3 rounded-xl bg-gold text-primary-foreground font-display tracking-[0.2em] uppercase text-sm shadow-gold hover:opacity-95 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Begin My Journey
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+            </div>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
