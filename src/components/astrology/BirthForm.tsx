@@ -10,8 +10,12 @@ interface Props {
 
 export function BirthForm({ onSubmit, busy }: Props) {
   const [name, setName] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [month, setMonth] = useState("");
+  const [day, setDay] = useState("");
+  const [year, setYear] = useState("");
+  const [hour, setHour] = useState("");
+  const [minute, setMinute] = useState("");
+  const [meridiem, setMeridiem] = useState<"AM" | "PM">("AM");
   const [place, setPlace] = useState("");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [picked, setPicked] = useState<GeocodeResult | null>(null);
@@ -34,8 +38,14 @@ export function BirthForm({ onSubmit, busy }: Props) {
 
   function loadKyle() {
     setName(KYLE_MERRITT_INPUT.name);
-    setDate(KYLE_MERRITT_INPUT.date);
-    setTime(KYLE_MERRITT_INPUT.time);
+    const [y, m, d] = KYLE_MERRITT_INPUT.date.split("-");
+    setYear(y); setMonth(String(parseInt(m, 10))); setDay(String(parseInt(d, 10)));
+    const [hh, mm] = KYLE_MERRITT_INPUT.time.split(":").map((v) => parseInt(v, 10));
+    const isPM = hh >= 12;
+    const h12 = ((hh + 11) % 12) + 1;
+    setHour(String(h12));
+    setMinute(String(mm).padStart(2, "0"));
+    setMeridiem(isPM ? "PM" : "AM");
     setPlace(KYLE_MERRITT_INPUT.place);
     setPicked({
       name: "Cincinnati", country: "United States", admin1: "Ohio",
@@ -49,10 +59,20 @@ export function BirthForm({ onSubmit, busy }: Props) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim() || !date || !time) {
-      setError("Name, date and time are required.");
-      return;
-    }
+    const mN = parseInt(month, 10);
+    const dN = parseInt(day, 10);
+    const yN = parseInt(year, 10);
+    const hN = parseInt(hour, 10);
+    const minN = parseInt(minute, 10);
+    if (!name.trim()) { setError("Please enter your full name."); return; }
+    if (!mN || mN < 1 || mN > 12) { setError("Month must be between 1 and 12."); return; }
+    if (!dN || dN < 1 || dN > 31) { setError("Day must be between 1 and 31."); return; }
+    if (!yN || yN < 1800 || yN > 2400) { setError("Year must be between 1800 and 2400."); return; }
+    if (isNaN(hN) || hN < 1 || hN > 12) { setError("Hour must be between 1 and 12."); return; }
+    if (isNaN(minN) || minN < 0 || minN > 59) { setError("Minutes must be between 0 and 59."); return; }
+    const date = `${yN}-${String(mN).padStart(2, "0")}-${String(dN).padStart(2, "0")}`;
+    const h24 = meridiem === "PM" ? (hN % 12) + 12 : hN % 12;
+    const time = `${String(h24).padStart(2, "0")}:${String(minN).padStart(2, "0")}`;
     if (!picked) {
       setError("Search and select a birth location.");
       return;
@@ -86,19 +106,44 @@ export function BirthForm({ onSubmit, busy }: Props) {
         </button>
       </div>
 
+      <div className="rounded-xl border border-gold/20 bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-1.5">
+        <p className="text-gold uppercase tracking-widest text-[0.7rem]">How to fill this out</p>
+        <p><span className="text-foreground">1. Name —</span> Enter the name you'd like on your chart.</p>
+        <p><span className="text-foreground">2. Birth date —</span> Type the month (1–12), day (1–31), and full 4-digit year exactly as on your birth certificate.</p>
+        <p><span className="text-foreground">3. Birth time —</span> Use the time on your birth certificate. Accuracy matters: even 10 minutes can shift your Ascendant and house cusps. Pick AM or PM.</p>
+        <p><span className="text-foreground">4. Birthplace —</span> Type your city, then click <em>Search</em> and pick the matching location so we can resolve your latitude, longitude, and timezone automatically.</p>
+        <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements, aspects, and to generate personalized reports.</p>
+      </div>
+
       <Field label="Full Name">
         <input value={name} onChange={(e) => setName(e.target.value)}
           className="cosmic-input" placeholder="Your name" />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Birth Date">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="cosmic-input" />
-        </Field>
-        <Field label="Birth Time (24h)">
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="cosmic-input" />
-        </Field>
-      </div>
+      <Field label="Birth Date (Month / Day / Year)">
+        <div className="grid grid-cols-3 gap-2">
+          <input value={month} onChange={(e) => setMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric" placeholder="MM" maxLength={2} className="cosmic-input text-center" />
+          <input value={day} onChange={(e) => setDay(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric" placeholder="DD" maxLength={2} className="cosmic-input text-center" />
+          <input value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            inputMode="numeric" placeholder="YYYY" maxLength={4} className="cosmic-input text-center" />
+        </div>
+      </Field>
+
+      <Field label="Birth Time (Hour / Minute / AM-PM)">
+        <div className="grid grid-cols-[1fr_1fr_1.2fr] gap-2">
+          <input value={hour} onChange={(e) => setHour(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric" placeholder="HH" maxLength={2} className="cosmic-input text-center" />
+          <input value={minute} onChange={(e) => setMinute(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric" placeholder="MM" maxLength={2} className="cosmic-input text-center" />
+          <select value={meridiem} onChange={(e) => setMeridiem(e.target.value as "AM" | "PM")}
+            className="cosmic-input text-center">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+      </Field>
 
       <Field label="Birthplace">
         <div className="flex gap-2">
