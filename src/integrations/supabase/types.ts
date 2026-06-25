@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          welcome_message_seen: boolean
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          updated_at?: string
+          welcome_message_seen?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          welcome_message_seen?: boolean
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
