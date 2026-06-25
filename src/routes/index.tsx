@@ -6,6 +6,7 @@ import { PlacementsTable } from "@/components/astrology/PlacementsTable";
 import { ReportsPanel } from "@/components/astrology/ReportsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { WelcomeModal } from "@/components/WelcomeModal";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 
 export const Route = createFileRoute("/")({
@@ -26,13 +27,47 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ? { email: data.user.email || undefined, name: data.user.user_metadata?.full_name } : null);
+    let mounted = true;
+    async function loadAuth(u: { id: string; email?: string | null; user_metadata?: { full_name?: string } } | null) {
+      if (!mounted) return;
+      if (!u) {
+        setUser(null); setUserId(null); setShowWelcome(false); setAuthLoading(false); return;
+      }
+      setUser({ email: u.email || undefined, name: u.user_metadata?.full_name });
+      setUserId(u.id);
       setAuthLoading(false);
+      // Check welcome flag
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("welcome_message_seen")
+        .eq("id", u.id)
+        .maybeSingle();
+      if (!prof) {
+        await supabase.from("profiles").insert({ id: u.id }).select().maybeSingle();
+        if (mounted) setShowWelcome(true);
+      } else if (!prof.welcome_message_seen) {
+        if (mounted) setShowWelcome(true);
+      }
+    }
+    supabase.auth.getUser().then(({ data }) => loadAuth(data.user as never));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        loadAuth((session?.user as never) ?? null);
+      }
     });
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
   }, []);
+
+  async function dismissWelcome() {
+    setShowWelcome(false);
+    if (userId) {
+      await supabase.from("profiles").update({ welcome_message_seen: true }).eq("id", userId);
+    }
+  }
 
   async function handleGoogleSignIn() {
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -72,6 +107,7 @@ function Index() {
 
   return (
     <div className="starfield relative min-h-screen">
+      <WelcomeModal open={showWelcome} onDismiss={dismissWelcome} />
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 md:py-24">
         <header className="text-center mb-16">
           <div className="flex items-center justify-center gap-3 mb-4">
