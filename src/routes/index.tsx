@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { BirthForm } from "@/components/astrology/BirthForm";
 import { ChartWheel } from "@/components/astrology/ChartWheel";
@@ -113,6 +113,12 @@ function Index() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <p className="text-xs uppercase tracking-[0.4em] text-gold">Cosmic Blueprint</p>
             <div className="ml-auto flex items-center gap-3">
+              <Link
+                to="/academy"
+                className="text-xs uppercase tracking-wider px-3 py-1.5 rounded-md border border-gold/40 text-gold hover:bg-gold/10 transition"
+              >
+                Learn Astrology
+              </Link>
               {!authLoading && (
                 user ? (
                   <div className="flex items-center gap-3">
