@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
+import { Link } from "@tanstack/react-router";
 import type { ChartCalculation } from "@/lib/astrology/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
@@ -376,6 +377,14 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
               ↓ Download .md
             </button>
           </header>
+          <div className="mb-6 flex justify-end">
+            <Link
+              to="/academy"
+              className="text-xs uppercase tracking-widest text-gold border border-gold/40 rounded-md px-4 py-2 hover:bg-gold/10 transition"
+            >
+              Learn what this means →
+            </Link>
+          </div>
           <div className="prose-cosmic">
             <ReactMarkdown>{active.markdown}</ReactMarkdown>
           </div>
