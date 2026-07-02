@@ -6,6 +6,7 @@ import type { ChartCalculation } from "@/lib/astrology/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
 import { jsPDF } from "jspdf";
 
 interface GeneratedReport {
@@ -104,6 +105,11 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   }
 
   function downloadReportPdf(r: GeneratedReport) {
+    // Luxury layout: cover, dedication, natal snapshot, TOC, chapter pages, footers.
+    downloadLuxuryReportPdf(r, chart);
+    return;
+    // (legacy simple renderer kept below for reference)
+    // eslint-disable-next-line no-unreachable
     const safe = r.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     const doc = new jsPDF({ unit: "pt", format: "letter" });
     const pageW = doc.internal.pageSize.getWidth();
