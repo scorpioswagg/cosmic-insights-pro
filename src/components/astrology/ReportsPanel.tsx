@@ -39,9 +39,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     setLoadingId(reportId);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        const { error: signInError } = await supabase.auth.signInAnonymously();
-        if (signInError) throw new Error(`Sign-in failed: ${signInError.message}`);
+      if (!sessionData.session || sessionData.session.user.is_anonymous) {
+        throw new Error("Please sign in with Google to generate reports.");
       }
       const chartPayload = {
         input: {
@@ -168,9 +167,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     setLoadingId(reportId);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        const { error: signInError } = await supabase.auth.signInAnonymously();
-        if (signInError) throw new Error(`Sign-in failed: ${signInError.message}`);
+      if (!sessionData.session || sessionData.session.user.is_anonymous) {
+        throw new Error("Please sign in with Google to generate reports.");
       }
       const chartPayload = {
         input: {

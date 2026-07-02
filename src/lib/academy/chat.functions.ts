@@ -15,7 +15,10 @@ const InputSchema = z.object({
 export const askAcademy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => InputSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    if ((context.claims as { is_anonymous?: boolean })?.is_anonymous) {
+      throw new Error("Unauthorized: please sign in with Google to use the tutor.");
+    }
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
