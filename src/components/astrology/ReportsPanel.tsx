@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { ChartCalculation } from "@/lib/astrology/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
@@ -23,6 +24,14 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   const [reports, setReports] = useState<Record<string, GeneratedReport>>({});
   const [error, setError] = useState<string | null>(null);
   const [adultUnlocked, setAdultUnlocked] = useState(false);
+  const [bulk, setBulk] = useState<{
+    label: string;
+    current: number;
+    total: number;
+    currentTitle: string;
+    failures: { title: string; message: string }[];
+  } | null>(null);
+  const isBulkRunning = bulk !== null;
 
   async function generate(reportId: string) {
     setError(null);
@@ -167,8 +176,12 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   }
 
   const intimacyReports = REPORTS.filter((r) => r.adult);
+  const patrioticReports = REPORTS.filter((r) => r.category === "Patriotic Collection");
 
-  async function ensureReport(reportId: string): Promise<GeneratedReport | null> {
+  async function ensureReport(
+    reportId: string,
+    opts: { throwOnError?: boolean } = {},
+  ): Promise<GeneratedReport | null> {
     if (reports[reportId]) return reports[reportId];
     setLoadingId(reportId);
     try {
@@ -197,6 +210,7 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
       setReports((prev) => ({ ...prev, [reportId]: result }));
       return result;
     } catch (e) {
+      if (opts.throwOnError) throw e;
       setError((e as Error).message || "Report generation failed.");
       return null;
     } finally {
@@ -227,10 +241,79 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
       if (!ok) return;
       setAdultUnlocked(true);
     }
-    for (const def of intimacyReports) {
-      const report = await ensureReport(def.id);
-      if (!report) return;
-      downloadReportPdf(report);
+    await bulkGeneratePdfs("Intimacy reports", intimacyReports);
+  }
+
+  async function generateAndDownloadAllPatrioticPdfs() {
+    setError(null);
+    await bulkGeneratePdfs("Patriotic Collection", patrioticReports);
+  }
+
+  async function bulkGeneratePdfs(
+    label: string,
+    defs: typeof REPORTS,
+  ) {
+    if (defs.length === 0) return;
+    if (isBulkRunning) return;
+    setError(null);
+    const failures: { title: string; message: string }[] = [];
+    let completed = 0;
+    setBulk({ label, current: 0, total: defs.length, currentTitle: defs[0].title, failures: [] });
+    const toastId = toast.loading(`Preparing ${label}…`, {
+      description: `0 of ${defs.length} ready`,
+    });
+    try {
+      for (let i = 0; i < defs.length; i++) {
+        const def = defs[i];
+        setBulk((prev) =>
+          prev ? { ...prev, current: i, currentTitle: def.title } : prev,
+        );
+        toast.loading(`Generating ${def.title}`, {
+          id: toastId,
+          description: `${i} of ${defs.length} ready`,
+        });
+        try {
+          const report = await ensureReport(def.id, { throwOnError: true });
+          if (!report) throw new Error("Report generation returned no content.");
+          downloadReportPdf(report);
+          completed += 1;
+          setBulk((prev) =>
+            prev ? { ...prev, current: i + 1 } : prev,
+          );
+        } catch (e) {
+          const message = (e as Error).message || "Unknown error";
+          failures.push({ title: def.title, message });
+          setBulk((prev) =>
+            prev
+              ? { ...prev, current: i + 1, failures: [...prev.failures, { title: def.title, message }] }
+              : prev,
+          );
+          // Continue with remaining reports instead of aborting the batch.
+        }
+      }
+
+      if (failures.length === 0) {
+        toast.success(`${label} ready`, {
+          id: toastId,
+          description: `Downloaded ${completed} of ${defs.length} PDFs.`,
+        });
+      } else if (completed === 0) {
+        toast.error(`${label} failed`, {
+          id: toastId,
+          description: `None of the ${defs.length} reports could be generated. ${failures[0].message}`,
+        });
+        setError(
+          `Bulk download failed. ${failures.map((f) => `${f.title}: ${f.message}`).join(" · ")}`,
+        );
+      } else {
+        toast.warning(`${label} finished with issues`, {
+          id: toastId,
+          description: `${completed} of ${defs.length} downloaded. ${failures.length} failed — see details below.`,
+        });
+      }
+    } finally {
+      // Clear progress after a short delay so users see the final state.
+      setTimeout(() => setBulk(null), 1500);
     }
   }
 
@@ -256,6 +339,19 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
               </span>
             )}
           </h3>
+          {category === "Patriotic Collection" && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <button
+                onClick={generateAndDownloadAllPatrioticPdfs}
+                disabled={isBulkRunning || !!loadingId}
+                className="text-[11px] uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition disabled:opacity-50"
+              >
+                {isBulkRunning && bulk?.label === "Patriotic Collection"
+                  ? `Generating ${bulk.current} / ${bulk.total}…`
+                  : "↓ Download all Patriotic Collection reports (PDF)"}
+              </button>
+            </div>
+          )}
           {category === "Intimacy (18+)" && (
             <>
               <p className="text-xs text-muted-foreground/80 mb-3 max-w-2xl">
@@ -265,11 +361,11 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
               <div className="mb-4 flex flex-wrap gap-2">
                 <button
                   onClick={generateAndDownloadAllIntimacyPdfs}
-                  disabled={!!loadingId}
+                  disabled={isBulkRunning || !!loadingId}
                   className="text-[11px] uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition disabled:opacity-50"
                 >
-                  {loadingId && intimacyReports.some((r) => r.id === loadingId)
-                    ? "Generating intimacy PDFs…"
+                  {isBulkRunning && bulk?.label === "Intimacy reports"
+                    ? `Generating ${bulk.current} / ${bulk.total}…`
                     : "↓ Download all intimacy reports (PDF)"}
                 </button>
               </div>
@@ -337,6 +433,43 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
           </div>
         </div>
       ))}
+
+      {bulk && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="glass rounded-xl p-4 border border-gold/40 space-y-3"
+        >
+          <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-gold">
+            <span>{bulk.label} · Bulk PDF download</span>
+            <span>
+              {Math.min(bulk.current, bulk.total)} / {bulk.total}
+            </span>
+          </div>
+          <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gold transition-all duration-300 ease-out"
+              style={{ width: `${Math.min(100, (bulk.current / bulk.total) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {bulk.current < bulk.total
+              ? `Now generating: ${bulk.currentTitle}. Please keep this tab open — each PDF downloads automatically as it finishes.`
+              : bulk.failures.length === 0
+                ? "All reports downloaded successfully."
+                : `Finished with ${bulk.failures.length} failure${bulk.failures.length === 1 ? "" : "s"}.`}
+          </p>
+          {bulk.failures.length > 0 && (
+            <ul className="text-xs text-destructive space-y-1">
+              {bulk.failures.map((f) => (
+                <li key={f.title}>
+                  <strong>{f.title}:</strong> {f.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {generatedList.length > 1 && (
         <div className="glass rounded-xl p-5 border border-gold/30 flex flex-wrap items-center justify-between gap-3">
