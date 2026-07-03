@@ -113,6 +113,13 @@ ABSOLUTE RULES:
 - Use markdown: H2 (##) per section, H3 (###) for subsections. No emojis.
 - Maintain a literate, grounded, modern psychological-astrology voice.
 
+CHAPTER BINDING RULES (STRICT):
+- Every chapter (## section) MUST open with a short "Chart Anchors" line in italics listing the exact placements and aspects from the CHART DATA that this chapter interprets — e.g. *Chart Anchors: Sun in Leo 12°34' (House 5); Moon square Saturn (orb 1.2°); Ascendant in Scorpio.*
+- Every paragraph (not just the chapter) MUST explicitly cite at least one real placement, house cusp, or aspect from the CHART DATA by sign, degree, house, and — for aspects — orb and applying/separating. Format placements as "Planet in Sign D°M' (House N)" and aspects as "Planet aspect Planet (orb X.X°, applying/separating)".
+- Never write a paragraph of generic astrology with no citation. If a chapter's theme has no supporting placement in the CHART DATA, say so plainly ("The chart does not emphasize X here") and pivot to the closest real placement instead of inventing one.
+- Do not paraphrase placements in ways that change the data (no rounding signs, no shifting houses, no renaming aspects). Copy sign, degree, house, orb, and applying/separating exactly as given.
+- Prefer the tightest aspects (smallest orb) and the angular/luminary placements when choosing what to cite for a given theme.
+
 REPORT FRAMING:
 ${def.systemFraming}`;
 
