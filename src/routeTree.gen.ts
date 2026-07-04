@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSendReportRouteImport } from './routes/api/send-report'
+import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
 
 const AcademyRoute = AcademyRouteImport.update({
   id: '/academy',
@@ -28,34 +29,43 @@ const ApiSendReportRoute = ApiSendReportRouteImport.update({
   path: '/api/send-report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEmailsRoute = AdminEmailsRouteImport.update({
+  id: '/admin/emails',
+  path: '/admin/emails',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
+  '/admin/emails': typeof AdminEmailsRoute
   '/api/send-report': typeof ApiSendReportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
+  '/admin/emails': typeof AdminEmailsRoute
   '/api/send-report': typeof ApiSendReportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
+  '/admin/emails': typeof AdminEmailsRoute
   '/api/send-report': typeof ApiSendReportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/academy' | '/api/send-report'
+  fullPaths: '/' | '/academy' | '/admin/emails' | '/api/send-report'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/academy' | '/api/send-report'
-  id: '__root__' | '/' | '/academy' | '/api/send-report'
+  to: '/' | '/academy' | '/admin/emails' | '/api/send-report'
+  id: '__root__' | '/' | '/academy' | '/admin/emails' | '/api/send-report'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcademyRoute: typeof AcademyRoute
+  AdminEmailsRoute: typeof AdminEmailsRoute
   ApiSendReportRoute: typeof ApiSendReportRoute
 }
 
@@ -82,12 +92,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSendReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/emails': {
+      id: '/admin/emails'
+      path: '/admin/emails'
+      fullPath: '/admin/emails'
+      preLoaderRoute: typeof AdminEmailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcademyRoute: AcademyRoute,
+  AdminEmailsRoute: AdminEmailsRoute,
   ApiSendReportRoute: ApiSendReportRoute,
 }
 export const routeTree = rootRouteImport
