@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSendReportRouteImport } from './routes/api/send-report'
 
 const AcademyRoute = AcademyRouteImport.update({
   id: '/academy',
@@ -22,31 +23,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSendReportRoute = ApiSendReportRouteImport.update({
+  id: '/api/send-report',
+  path: '/api/send-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
+  '/api/send-report': typeof ApiSendReportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
+  '/api/send-report': typeof ApiSendReportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
+  '/api/send-report': typeof ApiSendReportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/academy'
+  fullPaths: '/' | '/academy' | '/api/send-report'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/academy'
-  id: '__root__' | '/' | '/academy'
+  to: '/' | '/academy' | '/api/send-report'
+  id: '__root__' | '/' | '/academy' | '/api/send-report'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcademyRoute: typeof AcademyRoute
+  ApiSendReportRoute: typeof ApiSendReportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/send-report': {
+      id: '/api/send-report'
+      path: '/api/send-report'
+      fullPath: '/api/send-report'
+      preLoaderRoute: typeof ApiSendReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcademyRoute: AcademyRoute,
+  ApiSendReportRoute: ApiSendReportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
