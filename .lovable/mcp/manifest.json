@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "cosmic-blueprint-mcp",
+      "version": "0.1.0",
+      "title": "Cosmic Blueprint"
+    },
+    "tools": [
+      {
+        "name": "list_categories",
+        "title": "List report categories",
+        "description": "List every Cosmic Blueprint report category with the number of reports in each.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_reports",
+        "title": "List Cosmic Blueprint reports",
+        "description": "List all astrology reports available in the Cosmic Blueprint catalog. Optionally filter by category.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "category": {
+              "description": "Optional category filter (e.g. 'Core', 'Relationships', 'Growth', 'Timing', 'Vocation', 'Esoteric', 'Intimacy (18+)', 'Patriotic Collection').",
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_report_details",
+        "title": "Get report details",
+        "description": "Get the full definition of a Cosmic Blueprint report — sections, tagline, category, target length, and framing.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "report_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The report id, e.g. 'natal-essence' or 'soul-purpose'."
+            }
+          },
+          "required": [
+            "report_id"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
