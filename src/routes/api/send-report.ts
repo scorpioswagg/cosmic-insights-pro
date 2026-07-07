@@ -14,6 +14,47 @@ const FROM_ADDRESS = "Cosmic Blueprint <reports@mycosmicblueprint.online>";
 const MAX_ATTEMPTS = 3;
 const RETRY_BASE_MS = 500;
 
+// SSRF hardening: only allow PDF attachments hosted on trusted, app-owned
+// origins. Extend this list only for domains the app itself controls.
+function isAllowedPdfUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  const supabaseHost = (() => {
+    try { return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname.toLowerCase() : null; }
+    catch { return null; }
+  })();
+  const allowedHosts = new Set<string>([
+    ...(supabaseHost ? [supabaseHost] : []),
+    "mycosmicblueprint.online",
+    "yourcosmicblueprint.lovable.app",
+  ]);
+  if (allowedHosts.has(host)) return true;
+  // Allow any *.supabase.co storage host for this project family.
+  if (host.endsWith(".supabase.co") && u.pathname.startsWith("/storage/")) return true;
+  return false;
+}
+
+async function verifyBearer(request: Request): Promise<{ ok: true; userId: string } | { ok: false; status: number; message: string }> {
+  const auth = request.headers.get("authorization");
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return { ok: false, status: 401, message: "Missing bearer token" };
+  }
+  const token = auth.slice("Bearer ".length).trim();
+  if (!token) return { ok: false, status: 401, message: "Empty bearer token" };
+  const url = process.env.SUPABASE_URL;
+  const anon = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !anon) return { ok: false, status: 500, message: "Auth not configured" };
+  const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await client.auth.getClaims(token);
+  if (error || !data?.claims?.sub) return { ok: false, status: 401, message: "Invalid token" };
+  if ((data.claims as { is_anonymous?: boolean }).is_anonymous) {
+    return { ok: false, status: 403, message: "Anonymous users cannot send reports" };
+  }
+  return { ok: true, userId: data.claims.sub as string };
+}
+
 function getAdminClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -69,6 +110,13 @@ export const Route = createFileRoute("/api/send-report")({
       POST: async ({ request }) => {
         let logId: string | null = null;
         try {
+          const authResult = await verifyBearer(request);
+          if (!authResult.ok) {
+            return Response.json(
+              { success: false, error: authResult.message },
+              { status: authResult.status },
+            );
+          }
           const apiKey = process.env.RESEND_API_KEY;
           if (!apiKey) {
             console.error("[send-report] Missing RESEND_API_KEY");
@@ -96,6 +144,13 @@ export const Route = createFileRoute("/api/send-report")({
             );
           }
           const { name, email, reportType, pdfUrl } = parsed.data;
+
+          if (pdfUrl && !isAllowedPdfUrl(pdfUrl)) {
+            return Response.json(
+              { success: false, error: "pdfUrl host is not allowed" },
+              { status: 400 },
+            );
+          }
 
           logId = await insertLog({
             template_name: reportType,

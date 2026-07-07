@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { ChartCalculation } from "@/lib/astrology/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
+import { acknowledgeAdultConsent } from "@/lib/astrology/adult-consent.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
 import { jsPDF } from "jspdf";
@@ -19,6 +20,7 @@ interface GeneratedReport {
 
 export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   const runReport = useServerFn(generateAstroReport);
+  const runAckAdult = useServerFn(acknowledgeAdultConsent);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [reports, setReports] = useState<Record<string, GeneratedReport>>({});
@@ -42,6 +44,10 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
           "This is an 18+ Intimacy report with explicit sexual content. Confirm you are 18 or older and want to proceed."
         );
       if (!ok) return;
+      try { await runAckAdult({}); } catch (e) {
+        setError((e as Error).message || "Could not record adult consent.");
+        return;
+      }
       setAdultUnlocked(true);
     }
     setActiveId(reportId);
@@ -225,6 +231,10 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
       const ok = typeof window !== "undefined" &&
         window.confirm("This is an 18+ Intimacy report. Confirm you are 18 or older.");
       if (!ok) return;
+      try { await runAckAdult({}); } catch (e) {
+        setError((e as Error).message || "Could not record adult consent.");
+        return;
+      }
       setAdultUnlocked(true);
     }
     const report = await ensureReport(reportId);
@@ -239,6 +249,10 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
           "You are about to generate and download every 18+ Intimacy report as PDFs. Confirm you are 18 or older."
         );
       if (!ok) return;
+      try { await runAckAdult({}); } catch (e) {
+        setError((e as Error).message || "Could not record adult consent.");
+        return;
+      }
       setAdultUnlocked(true);
     }
     await bulkGeneratePdfs("Intimacy reports", intimacyReports);
