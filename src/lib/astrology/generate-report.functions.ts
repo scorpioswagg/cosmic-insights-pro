@@ -100,6 +100,22 @@ export const generateAstroReport = createServerFn({ method: "POST" })
     const def = REPORTS.find((r) => r.id === data.reportId);
     if (!def) throw new Error(`Unknown report: ${data.reportId}`);
 
+    // Adult (18+) reports require a persisted server-side consent acknowledgment
+    // stored on the user's profile. Client-only confirms are bypassable.
+    if (def.adult) {
+      const { data: profile, error: profileError } = await context.supabase
+        .from("profiles")
+        .select("adult_consent")
+        .eq("id", context.userId)
+        .maybeSingle();
+      if (profileError) throw new Error(profileError.message);
+      if (!profile?.adult_consent) {
+        throw new Error(
+          "ADULT_CONSENT_REQUIRED: You must record 18+ consent before generating intimacy reports.",
+        );
+      }
+    }
+
     const gateway = createLovableAiGatewayProvider(key);
     const chartBlock = chartToPrompt(data.chart);
 
