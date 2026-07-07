@@ -64,18 +64,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          adult_consent: boolean
           created_at: string
           id: string
           updated_at: string
           welcome_message_seen: boolean
         }
         Insert: {
+          adult_consent?: boolean
           created_at?: string
           id: string
           updated_at?: string
           welcome_message_seen?: boolean
         }
         Update: {
+          adult_consent?: boolean
           created_at?: string
           id?: string
           updated_at?: string
