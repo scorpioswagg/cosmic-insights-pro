@@ -79,7 +79,7 @@ async function updateLog(id: string | null, patch: Partial<LogInsert>) {
     .from("email_send_log")
     .update({
       ...patch,
-      ...(patch.metadata ? { metadata: patch.metadata as Json } : {}),
+      metadata: (patch.metadata ?? undefined) as Json | undefined,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
