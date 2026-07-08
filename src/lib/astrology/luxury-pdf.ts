@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import type { ChartCalculation } from "./types";
 
-interface GeneratedReport {
+export interface GeneratedReport {
   reportId: string;
   title: string;
   markdown: string;
@@ -26,7 +26,7 @@ function fmtDeg(d: number) {
  * Cover page, dedication, table of contents, chapter pages, natal snapshot,
  * chapter summaries, and footer page numbers.
  */
-export function downloadLuxuryReportPdf(report: GeneratedReport, chart: ChartCalculation) {
+function buildLuxuryReportDoc(report: GeneratedReport, chart: ChartCalculation): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -319,6 +319,18 @@ export function downloadLuxuryReportPdf(report: GeneratedReport, chart: ChartCal
     doc.line(margin, pageH - 38, pageW - margin, pageH - 38);
   }
 
+  return doc;
+}
+
+/** Client-side helper: build the doc and trigger a browser download. */
+export function downloadLuxuryReportPdf(report: GeneratedReport, chart: ChartCalculation) {
+  const doc = buildLuxuryReportDoc(report, chart);
   const safe = report.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   doc.save(`${safe}-${chart.input.name.replace(/\s+/g, "-")}.pdf`);
+}
+
+/** Server-safe: return the PDF as raw bytes for upload / attachment. */
+export function buildLuxuryReportPdfBytes(report: GeneratedReport, chart: ChartCalculation): Uint8Array {
+  const doc = buildLuxuryReportDoc(report, chart);
+  return new Uint8Array(doc.output("arraybuffer") as ArrayBuffer);
 }
