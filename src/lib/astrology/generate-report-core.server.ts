@@ -1,7 +1,38 @@
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { REPORTS } from "./reports-catalog";
-import type { ChartCalculation } from "./types";
+
+// Minimal chart shape needed for report generation (subset of ChartCalculation).
+export interface ReportChartInput {
+  input: {
+    name: string;
+    date: string;
+    time: string;
+    place: string;
+    latitude: number;
+    longitude: number;
+    timezone: string;
+  };
+  julianDayUT: number;
+  utcIso: string;
+  ascendant: number;
+  midheaven: number;
+  bodies: Array<{
+    name: string;
+    sign: string;
+    signDegree: number;
+    house?: number;
+    retrograde: boolean;
+  }>;
+  houses: number[];
+  aspects: Array<{
+    a: string;
+    b: string;
+    type: string;
+    orb: number;
+    applying: boolean;
+  }>;
+}
 
 function fmtDeg(d: number) {
   const deg = Math.floor(d);
@@ -9,7 +40,7 @@ function fmtDeg(d: number) {
   return `${deg}°${String(min).padStart(2, "0")}'`;
 }
 
-function chartToPrompt(chart: ChartCalculation) {
+function chartToPrompt(chart: ReportChartInput) {
   const bodies = chart.bodies
     .map((b) =>
       `- ${b.name}: ${b.sign} ${fmtDeg(b.signDegree)}${
@@ -53,7 +84,7 @@ export interface GeneratedReportPayload {
 
 export async function generateReportMarkdown(input: {
   reportId: string;
-  chart: ChartCalculation;
+  chart: ReportChartInput;
 }): Promise<GeneratedReportPayload> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
