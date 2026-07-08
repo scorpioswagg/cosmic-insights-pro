@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 // Cosmic Blueprint brand palette.
 const BRAND = {
@@ -61,7 +61,7 @@ async function insertLog(row: LogInsert): Promise<string | null> {
   if (!db) return null;
   const { data, error } = await db
     .from("email_send_log")
-    .insert(row)
+    .insert({ ...row, metadata: (row.metadata ?? {}) as Json })
     .select("id")
     .single();
   if (error) {
@@ -77,7 +77,11 @@ async function updateLog(id: string | null, patch: Partial<LogInsert>) {
   if (!db) return;
   await db
     .from("email_send_log")
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .update({
+      ...patch,
+      ...(patch.metadata ? { metadata: patch.metadata as Json } : {}),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id);
 }
 
