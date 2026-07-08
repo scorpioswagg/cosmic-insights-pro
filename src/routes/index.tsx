@@ -40,6 +40,20 @@ function Index() {
       setUser({ email: u.email || undefined, name: u.user_metadata?.full_name });
       setUserId(u.id);
       setAuthLoading(false);
+      // If we bounced here from the OAuth consent route, return the user to it
+      // now that their session is hydrated.
+      if (typeof window !== "undefined") {
+        try {
+          const next = window.sessionStorage.getItem("oauth_next");
+          if (next && next.startsWith("/") && !next.startsWith("//")) {
+            window.sessionStorage.removeItem("oauth_next");
+            window.location.replace(next);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
       // Check welcome flag
       const { data: prof } = await supabase
         .from("profiles")
