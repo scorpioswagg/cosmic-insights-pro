@@ -1,86 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { createHmac, timingSafeEqual } from "crypto";
 import type { Database, Json } from "@/integrations/supabase/types";
-
-// Resend webhooks are signed via Svix.
-// Headers: svix-id, svix-timestamp, svix-signature ("v1,<base64sig> v1,<base64sig>")
-// Signed payload: `${svix_id}.${svix_timestamp}.${rawBody}`
-// Secret: `whsec_<base64>` — decode the base64 portion for the HMAC key.
-function verifySvix(opts: {
-  secret: string;
-  svixId: string;
-  svixTimestamp: string;
-  svixSignature: string;
-  rawBody: string;
-}): boolean {
-  const { secret, svixId, svixTimestamp, svixSignature, rawBody } = opts;
-  if (!svixId || !svixTimestamp || !svixSignature) return false;
-
-  // Reject timestamps older than 5 minutes to prevent replay.
-  const ts = Number(svixTimestamp);
-  if (!Number.isFinite(ts)) return false;
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (Math.abs(nowSec - ts) > 60 * 5) return false;
-
-  const secretB64 = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
-  let keyBytes: Buffer;
-  try {
-    keyBytes = Buffer.from(secretB64, "base64");
-  } catch {
-    return false;
-  }
-  const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
-  const expected = createHmac("sha256", keyBytes).update(signedPayload).digest("base64");
-  const expectedBuf = Buffer.from(expected);
-
-  const parts = svixSignature.split(" ");
-  for (const part of parts) {
-    const [version, sig] = part.split(",");
-    if (version !== "v1" || !sig) continue;
-    const sigBuf = Buffer.from(sig);
-    if (sigBuf.length === expectedBuf.length && timingSafeEqual(sigBuf, expectedBuf)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// Map Resend event type -> row status in email_send_log.
-function statusFromEvent(eventType: string): string | null {
-  switch (eventType) {
-    case "email.sent":
-    case "email.delivery_delayed":
-      return "sent";
-    case "email.delivered":
-      return "delivered";
-    case "email.opened":
-      return "opened";
-    case "email.clicked":
-      return "clicked";
-    case "email.bounced":
-      return "bounced";
-    case "email.complained":
-      return "complained";
-    case "email.failed":
-      return "failed";
-    default:
-      return null;
-  }
-}
-
-// Ordering so a late "sent" webhook doesn't overwrite "delivered".
-const STATUS_RANK: Record<string, number> = {
-  pending: 0,
-  sent: 1,
-  delivery_delayed: 1,
-  delivered: 2,
-  opened: 3,
-  clicked: 4,
-  bounced: 5,
-  complained: 5,
-  failed: 5,
-};
+import {
+  verifySvix,
+  statusFromEvent,
+  shouldAdvanceStatus,
+} from "@/lib/email/resend-webhook";
 
 function adminClient() {
   const url = process.env.SUPABASE_URL;
@@ -166,9 +91,7 @@ export const Route = createFileRoute("/api/webhooks/resend")({
           return Response.json({ ok: true, unmatched: true });
         }
 
-        const currentRank = STATUS_RANK[row.status] ?? 0;
-        const nextRank = STATUS_RANK[nextStatus] ?? 0;
-        const shouldAdvance = nextRank >= currentRank;
+        const shouldAdvance = shouldAdvanceStatus(row.status, nextStatus);
 
         const prevMeta =
           row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
