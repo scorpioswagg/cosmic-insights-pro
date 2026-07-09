@@ -102,7 +102,7 @@ export function BirthForm({ onSubmit, busy }: Props) {
         <h2 className="font-display text-2xl text-gradient-gold">Birth Details</h2>
         <button type="button" onClick={loadKyle}
           className="text-xs uppercase tracking-widest text-gold hover:underline">
-          Load validation chart
+          YOU MUST FIRST SIGN UP/SIGN IN FIRST.
         </button>
       </div>
 
