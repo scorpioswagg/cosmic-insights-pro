@@ -6,9 +6,14 @@ import { KYLE_MERRITT_INPUT } from "@/lib/astrology/validation";
 interface Props {
   onSubmit: (input: BirthInput) => void;
   busy?: boolean;
+  /** When false, the form is locked and prompts the visitor to sign in. */
+  isAuthed?: boolean;
+  /** Admin-only convenience: prefill the validation chart. */
+  showSample?: boolean;
+  onSignIn?: () => void;
 }
 
-export function BirthForm({ onSubmit, busy }: Props) {
+export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false, onSignIn }: Props) {
   const [name, setName] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -59,6 +64,10 @@ export function BirthForm({ onSubmit, busy }: Props) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isAuthed) {
+      setError("Please sign in to calculate your chart.");
+      return;
+    }
     const mN = parseInt(month, 10);
     const dN = parseInt(day, 10);
     const yN = parseInt(year, 10);
@@ -100,11 +109,31 @@ export function BirthForm({ onSubmit, busy }: Props) {
     <form onSubmit={submit} className="glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl text-gradient-gold">Birth Details</h2>
-        <button type="button" onClick={loadKyle}
-          className="text-xs uppercase tracking-widest text-gold hover:underline">
-          YOU MUST FIRST SIGN UP/SIGN IN FIRST.
-        </button>
+        {showSample && (
+          <button type="button" onClick={loadKyle}
+            className="text-xs uppercase tracking-widest text-gold hover:underline">
+            Load sample chart
+          </button>
+        )}
       </div>
+
+      {!isAuthed && (
+        <div className="rounded-xl border border-gold/50 bg-gold/10 p-4 space-y-3">
+          <p className="text-sm text-foreground">
+            <span className="text-gold font-medium">Sign in required.</span> Create your free
+            account to calculate your natal chart and unlock the report library.
+          </p>
+          {onSignIn && (
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="text-xs uppercase tracking-widest px-4 py-2 rounded-md bg-gold text-primary-foreground hover:opacity-90 transition"
+            >
+              Sign in / Sign up
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="rounded-xl border border-gold/20 bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-1.5">
         <p className="text-gold uppercase tracking-widest text-[0.7rem]">How to fill this out</p>
@@ -177,9 +206,13 @@ export function BirthForm({ onSubmit, busy }: Props) {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <button type="submit" disabled={busy}
+      <button type="submit" disabled={busy || !isAuthed}
         className="w-full py-3 rounded-xl bg-gold text-primary-foreground font-display tracking-wider uppercase shadow-gold hover:opacity-95 transition disabled:opacity-50">
-        {busy ? "Consulting the heavens…" : "Calculate Cosmic Blueprint"}
+        {busy
+          ? "Consulting the heavens…"
+          : isAuthed
+            ? "Calculate Cosmic Blueprint"
+            : "Sign in to calculate"}
       </button>
 
       <style>{`

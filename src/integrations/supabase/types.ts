@@ -86,6 +86,51 @@ export type Database = {
         }
         Relationships: []
       }
+      report_products: {
+        Row: {
+          adult: boolean
+          category: string
+          created_at: string
+          icon: string
+          id: string
+          is_free: boolean
+          is_published: boolean
+          price_cents: number
+          sort_order: number
+          tagline: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          adult?: boolean
+          category: string
+          created_at?: string
+          icon?: string
+          id: string
+          is_free?: boolean
+          is_published?: boolean
+          price_cents?: number
+          sort_order?: number
+          tagline?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          adult?: boolean
+          category?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_free?: boolean
+          is_published?: boolean
+          price_cents?: number
+          sort_order?: number
+          tagline?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
