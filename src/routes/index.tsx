@@ -7,6 +7,7 @@ import { ReportsPanel } from "@/components/astrology/ReportsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { WelcomeModal } from "@/components/WelcomeModal";
+import { getIsAdmin } from "@/lib/reports/catalog.functions";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 
 export const Route = createFileRoute("/")({
@@ -29,17 +30,21 @@ function Index() {
   const [authLoading, setAuthLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     async function loadAuth(u: { id: string; email?: string | null; user_metadata?: { full_name?: string } } | null) {
       if (!mounted) return;
       if (!u) {
-        setUser(null); setUserId(null); setShowWelcome(false); setAuthLoading(false); return;
+        setUser(null); setUserId(null); setShowWelcome(false); setIsAdmin(false); setAuthLoading(false); return;
       }
       setUser({ email: u.email || undefined, name: u.user_metadata?.full_name });
       setUserId(u.id);
       setAuthLoading(false);
+      getIsAdmin()
+        .then((r) => mounted && setIsAdmin(r.isAdmin))
+        .catch(() => mounted && setIsAdmin(false));
       // If we bounced here from the OAuth consent route, return the user to it
       // now that their session is hydrated.
       if (typeof window !== "undefined") {
@@ -98,6 +103,7 @@ function Index() {
   async function handleSignOut() {
     await supabase.auth.signOut();
     setUser(null);
+    setIsAdmin(false);
   }
 
   async function handleCalc(input: BirthInput) {
@@ -137,6 +143,14 @@ function Index() {
                 user ? (
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground hidden sm:inline">{user.name || user.email}</span>
+                    {isAdmin && (
+                      <Link
+                        to="/admin/reports"
+                        className="text-xs uppercase tracking-wider px-3 py-1.5 rounded-md border border-gold/40 text-gold hover:bg-gold/10 transition"
+                      >
+                        Admin
+                      </Link>
+                    )}
                     <button
                       onClick={handleSignOut}
                       className="text-xs uppercase tracking-wider px-3 py-1.5 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:border-gold/40 transition"
@@ -171,7 +185,13 @@ function Index() {
         </header>
 
         <section className="grid lg:grid-cols-2 gap-8 items-start">
-          <BirthForm onSubmit={handleCalc} busy={busy} />
+          <BirthForm
+            onSubmit={handleCalc}
+            busy={busy}
+            isAuthed={!!user}
+            showSample={isAdmin}
+            onSignIn={handleGoogleSignIn}
+          />
           <div className="glass rounded-2xl p-6 shadow-deep space-y-4 text-sm">
             <h2 className="font-display text-xl text-gradient-gold">What you get</h2>
             <ul className="space-y-2 text-muted-foreground">
