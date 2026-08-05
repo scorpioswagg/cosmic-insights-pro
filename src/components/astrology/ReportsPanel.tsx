@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -8,6 +9,8 @@ import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
 import { acknowledgeAdultConsent } from "@/lib/astrology/adult-consent.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { listPublishedReports, getIsAdmin } from "@/lib/reports/catalog.functions";
+import { formatPrice } from "@/lib/reports/pricing";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
 import { jsPDF } from "jspdf";
 
@@ -21,6 +24,20 @@ interface GeneratedReport {
 export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   const runReport = useServerFn(generateAstroReport);
   const runAckAdult = useServerFn(acknowledgeAdultConsent);
+  const fetchCatalog = useServerFn(listPublishedReports);
+  const fetchIsAdmin = useServerFn(getIsAdmin);
+
+  const { data: catalog } = useQuery({
+    queryKey: ["published-report-products"],
+    queryFn: () => fetchCatalog(),
+  });
+  const { data: adminInfo } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: () => fetchIsAdmin(),
+    retry: false,
+  });
+  const isAdmin = !!adminInfo?.isAdmin;
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [reports, setReports] = useState<Record<string, GeneratedReport>>({});
@@ -98,7 +115,14 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     }
   }
 
-  const grouped = REPORTS.reduce<Record<string, typeof REPORTS>>((acc, r) => {
+  // Only reports that exist in the catalog and are published are shown.
+  // Before the catalog is synced (empty table) fall back to the code catalog.
+  const priceById = new Map((catalog ?? []).map((p) => [p.id, p]));
+  const visible = catalog && catalog.length > 0
+    ? REPORTS.filter((r) => priceById.has(r.id))
+    : REPORTS;
+
+  const grouped = visible.reduce<Record<string, typeof REPORTS>>((acc, r) => {
     (acc[r.category] ||= []).push(r);
     return acc;
   }, {});
@@ -181,8 +205,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     doc.save(`${safe}-${chart.input.name.replace(/\s+/g, "-")}.pdf`);
   }
 
-  const intimacyReports = REPORTS.filter((r) => r.adult);
-  const patrioticReports = REPORTS.filter((r) => r.category === "Patriotic Collection");
+  const intimacyReports = visible.filter((r) => r.adult);
+  const patrioticReports = visible.filter((r) => r.category === "Patriotic Collection");
 
   async function ensureReport(
     reportId: string,
@@ -333,11 +357,19 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
 
   const generatedList = REPORTS.filter((r) => reports[r.id]).map((r) => reports[r.id]);
 
+  function priceLabel(id: string): string | null {
+    if (isAdmin) return "Included";
+    const p = priceById.get(id);
+    if (!p) return null;
+    if (p.is_free) return "Free";
+    return formatPrice(p.price_cents);
+  }
+
   return (
     <section className="space-y-8">
       <div className="text-center">
         <p className="text-xs uppercase tracking-[0.35em] text-gold mb-2">Premium Reports</p>
-        <h2 className="font-display text-4xl text-gradient-gold">{REPORTS.length} Astrological Reports</h2>
+        <h2 className="font-display text-4xl text-gradient-gold">{visible.length} Astrological Reports</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
           Each report is generated from your real Swiss Ephemeris chart data — no templates, no guesswork.
         </p>
@@ -404,8 +436,15 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <span className="text-3xl text-gold">{r.icon}</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {isLoading ? "generating…" : isDone ? "✓ ready" : "tap to generate"}
+                      <span className="text-right">
+                        {priceLabel(r.id) && (
+                          <span className="block text-[11px] font-medium tracking-wide text-gold">
+                            {priceLabel(r.id)}
+                          </span>
+                        )}
+                        <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
+                          {isLoading ? "generating…" : isDone ? "✓ ready" : "tap to generate"}
+                        </span>
                       </span>
                     </div>
                     <h4 className="font-display text-lg text-foreground group-hover:text-gradient-gold">
