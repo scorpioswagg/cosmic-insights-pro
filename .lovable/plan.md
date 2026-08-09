@@ -1,118 +1,71 @@
-# Cosmic Blueprint — Paid Report Platform
+# Cosmic Blueprint — Stripe Purchases, Entitlements, Admin & Email
 
-This is a large scope. I'll ship it in one coherent build, but breaking it into clear phases so you can see what's happening.
+Builds on what already exists (report catalog in the database, admin role system, Resend email service with delivery logging, PDF generation). Nothing working gets replaced.
 
-## Phase 1 — Auth gate & UI polish (Birth Details form)
+## What you'll be able to do when this is done
 
-- Rename form heading to exactly **"Birth Details"**.
-- Add a prominent sign-in/sign-up notice card at the very top of the form, above all fields, explaining that authentication is required to generate reports.
-- Hide the **Validate Chart** button from all non-admin users. Only visible when `has_role(uid, 'admin')` returns true.
-- Block the Reports panel from generating anything unless the user is signed in with a real (non-anonymous) Google account. Show an inline "Sign in to continue" state instead.
+- Browse the report catalog and clearly see Free / Included / Locked / Unlocked / Purchase states.
+- Buy a single report through real Stripe Checkout.
+- Access unlocks only after Stripe's verified webhook confirms payment — never just because you came back from the checkout page.
+- Get a confirmation email from oracle@mycosmicblueprint.online, exactly once even if Stripe retries.
+- See everything you own in a **My Reports** area.
+- Manage administrators, prices, publish state, purchases and entitlements from the admin dashboard.
 
-## Phase 2 — Unified report catalog in the database
+## Data changes
 
-Move the report catalog from the static `reports-catalog.ts` file into a `report_products` table so the admin can edit price / visibility / access without code changes.
-
-Schema:
+Three new tables plus access rules:
 
 ```text
-report_products
-  id (slug, PK)          e.g. "natal-essence", "soul-purpose-activation-code"
-  title, category, tagline, icon, adult (bool)
-  price_cents (int)      admin-editable
-  visible (bool)         hidden reports do not appear publicly
-  enabled (bool)         disabled reports cannot be generated even if visible
-  stripe_price_id (text) filled by admin "Sync to Stripe" action
-  sort_order (int)
-  created_at, updated_at
-
-report_purchases
-  id, user_id, report_id, stripe_session_id, stripe_payment_intent
-  status ('paid' | 'refunded'), amount_cents, created_at
-
-report_access_overrides
-  user_id, report_id, granted_by, reason, created_at
-  (admin can grant free access; admins themselves are always free)
+report_purchases   user_id, report_id, stripe_session_id (unique),
+                   stripe_payment_intent, amount_cents, currency,
+                   status (pending|paid|refunded|failed), email_sent_at
+report_entitlements user_id, report_id (unique together), source
+                   (purchase|admin_grant|free|admin_role), purchase_id,
+                   status, granted_at, expires_at
+admin_audit_log    actor, action, target_user, target_report, metadata
 ```
 
-Seed the table on migration with:
-- All ~60 existing catalog entries (Core, Relationships, Growth, Timing, Vocation, Esoteric, Intimacy 18+, Patriotic Collection, Deep Personal).
-- The 19 new reports from your list with the exact prices you provided.
-- Tiered auto-pricing for any legacy report missing a price: light $19–29, standard $35–49, deep $59–79, flagship $89+.
+`report_products` gains `stripe_price_id`, `stripe_product_id`, `currency`, `slug`.
 
-`reports-catalog.ts` becomes the seed source only; runtime reads from the DB.
+Access rules: customers can read only their own purchases and entitlements and can never write them — only verified server-side code creates them. Admins can read everything.
 
-## Phase 3 — 19 new reports
+## Purchase flow
 
-Add the 19 new report definitions (Soul Purpose Activation Code … Daily Cosmic Alignment Ritual Guide) to the catalog with:
-- Full expanded `systemFraming` per your spec (chart anchors, structured sections, long-form ~4000–6000 word targets so PDFs land at 20+ pages).
-- Section lists tuned to each report (intro → interpretation → actionable → timing → rituals → integration).
-- The exact prices you listed.
+1. **Purchase Report** button on any paid, published report (signed-in users only).
+2. Server looks up the report, confirms it's published and paid, resolves the Stripe price server-side (creating the Stripe product/price on first use), and opens a Checkout Session with the user id and report id in metadata. A `pending` purchase row is written.
+3. Stripe redirects to `/checkout/success` which shows "Payment received — we're confirming your purchase," then polls entitlement status and flips to "Your report is unlocked!" with an open-report button. `/checkout/cancel` offers a clean retry.
+4. `POST /api/public/webhooks/stripe` verifies the Stripe signature, handles `checkout.session.completed`, `checkout.session.async_payment_succeeded/failed`, `payment_intent.payment_failed` and `charge.refunded`. On success it marks the purchase paid, creates the entitlement for that one report, and sends the Resend confirmation. Repeat deliveries of the same event are recognised and ignored — no duplicate entitlement, no duplicate email.
 
-## Phase 4 — Stripe checkout & webhook
+Refunds revoke the entitlement.
 
-Uses the existing seamless Stripe integration (already enabled — `SRIPE_API_SECTRET_KEY` and `STRIPE_WEBHOOK` are in secrets).
+## Access enforcement
 
-- `POST /api/checkout/report` (auth-required server route): creates a Stripe Checkout Session for a given `report_id`, `success_url` back to `/reports/:id`, `cancel_url` back to `/`.
-- `POST /api/public/webhooks/stripe`: verifies signature, on `checkout.session.completed` writes a row to `report_purchases`, then fires a Resend "purchase confirmation" email via the existing email service.
-- Access check helper `userHasAccess(userId, reportId)`:
-  1. Admin role → true
-  2. Access override row → true
-  3. Paid purchase row → true
-  4. Report price = 0 → true
-  5. Otherwise false
-- `generateAstroReport` server fn and the MCP `generate_report_pdf` tool both call this check before generating.
+A single server-side `resolveReportAccess(userId, reportId)` decides everything, in order: admin role → free/included report → active entitlement → otherwise locked. Report generation, PDF download, signed storage URLs and the MCP report tool all call it. Locked means blocked at the data layer — hiding a button is never the gate.
 
-## Phase 5 — Public report listing & paywall UI
+## Admin dashboard
 
-- New `/reports` route: lists every `visible` report from the DB, grouped by category, with price badges and lock icons for unpurchased items.
-- Clicking a locked report → "Unlock for $X" button → Stripe Checkout.
-- Clicking an unlocked report → generates and downloads the PDF (existing flow).
-- Hidden reports never appear.
+`/admin` becomes a hub with tabs:
+- **Administrators** — live list from the database (email, role, status, created date), with promote/revoke actions and audit logging. No hard-coded lists.
+- **Reports** — existing pricing/publish table, plus Stripe price id and a "Sync prices to Stripe" action.
+- **Purchases** — customer, report, amount, status, date, email status; manual grant/revoke entitlement.
+- **Emails** — existing delivery log.
 
-## Phase 6 — Admin dashboard
+`oracle@mycosmicblueprint.online` is granted the admin role. If that account hasn't signed up yet, the grant is stored so it applies the moment the account is created — no fake credentials, no stored passwords.
 
-New `/admin/reports` route (admin-only, guarded by `has_role`):
-- Table of every report: title, category, price (inline editable), visible toggle, enabled toggle, stripe price id, adult flag.
-- Bulk actions: hide all in category, set tier pricing.
-- Grant free access to a specific user for a specific report.
-- Link to existing `/admin/emails` dashboard.
+## Email
 
-Also expose the admin-only **Validate Chart** action here so it's off the public form.
+Reuses the existing Resend service and delivery log. Purchase confirmation is sent from oracle@mycosmicblueprint.online after the entitlement exists, with report name, amount, date, and a link to open it. Guarded by `email_sent_at` so retries can't duplicate it.
 
-## Phase 7 — Notifications
+## Testing
 
-Reuse `src/lib/email/service.server.ts`:
-- On successful Stripe webhook → send "Purchase confirmation" email with receipt + link.
-- On report PDF generation success → send "Your report is ready" email with signed download URL.
+Unit tests for webhook signature verification, idempotent replay, entitlement isolation (buying report A never unlocks B), refund revocation, and the access resolver. Plus a browser pass over catalog, checkout entry, success page, My Reports and admin at mobile and desktop widths.
 
-## Phase 8 — Verification
+## Configuration you'll need to confirm
 
-End-to-end check with Playwright on localhost:
-1. Anonymous user visits `/` → sees the sign-in notice, form is visible but Generate is blocked.
-2. Sign-in flow → user lands back on form.
-3. Free/legacy priced report → checkout redirect works (Stripe test mode).
-4. Admin login → sees Validate Chart, sees `/admin/reports` with all rows.
-5. Hidden report → does not appear in `/reports` list.
-6. Webhook simulator (`stripe trigger checkout.session.completed`) → access unlocks, email log row created.
+The Stripe secret is currently stored under a misspelled name (`SRIPE_API_SECTRET_KEY`). The code will read it, but I'd recommend re-saving it as `STRIPE_SECRET_KEY`. You'll also need to point a Stripe webhook endpoint at `https://yourcosmicblueprint.lovable.app/api/public/webhooks/stripe` and confirm the signing secret matches `STRIPE_WEBHOOK`. I'll list any missing values instead of inventing them.
 
----
+## Technical notes
 
-## Technical notes (for reference)
-
-- Migrations: `report_products`, `report_purchases`, `report_access_overrides` tables + RLS. Seeded via a single migration.
-- All price edits and visibility toggles go through authenticated server functions gated by `has_role(uid,'admin')`.
-- Stripe: use the seamless Stripe key already configured. Admin "Sync prices to Stripe" action creates/updates Stripe Products & Prices for reports without a `stripe_price_id`.
-- Webhook signature verification uses `STRIPE_WEBHOOK` secret already in the project.
-- No frontend logic decides access — the server function is the single source of truth.
-
----
-
-## One clarifying question before I start
-
-Given the scope (DB migration, 19 large report definitions, Stripe checkout + webhook, admin dashboard, paywall UI, email hooks, tests), this is a big multi-file build that will take significant credits. Two options:
-
-1. **Ship everything above in one build** (recommended — the pieces are tightly coupled; splitting causes rework).
-2. **Ship in slices**: (A) auth gate + form polish + 19 new reports first, then (B) Stripe paywall + admin dashboard, then (C) email notifications + tests.
-
-Reply "all" for #1, or "phase A" / "phase B" / "phase C" for #2.
+- Checkout session creation and the entitlement resolver are authenticated `createServerFn`s; the webhook is a public server route with signature verification and service-role writes.
+- Stripe price ids are resolved server-side from the report id only; the client never sends a price or amount.
+- All new tables get explicit grants plus owner-scoped read policies; writes are service-role only.
