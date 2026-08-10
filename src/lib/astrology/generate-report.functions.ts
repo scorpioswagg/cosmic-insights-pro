@@ -55,6 +55,10 @@ export const generateAstroReport = createServerFn({ method: "POST" })
     const def = REPORTS.find((r) => r.id === data.reportId);
     if (!def) throw new Error(`Unknown report: ${data.reportId}`);
 
+    // Entitlement gate — the single server-side source of truth for access.
+    const { assertReportAccess } = await import("@/lib/reports/access.server");
+    await assertReportAccess(context.userId, data.reportId);
+
     // Adult (18+) reports require a persisted server-side consent acknowledgment
     // stored on the user's profile. Client-only confirms are bypassable.
     if (def.adult) {
