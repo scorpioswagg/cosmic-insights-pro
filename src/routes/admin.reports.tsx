@@ -11,6 +11,8 @@ import {
 } from "@/lib/reports/catalog.functions";
 import { formatPrice } from "@/lib/reports/pricing";
 import { Button } from "@/components/ui/button";
+import { AdminNav } from "@/components/admin/AdminNav";
+import { syncStripePrices } from "@/lib/admin/purchases.functions";
 
 export const Route = createFileRoute("/admin/reports")({
   ssr: false,
@@ -37,6 +39,7 @@ function AdminReportsPage() {
   const fetchAll = useServerFn(listAllReports);
   const runSync = useServerFn(syncReportCatalog);
   const runUpdate = useServerFn(updateReportProduct);
+  const runStripeSync = useServerFn(syncStripePrices);
   const qc = useQueryClient();
   const [filter, setFilter] = useState("");
 
@@ -61,6 +64,16 @@ function AdminReportsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const stripeSync = useMutation({
+    mutationFn: () => runStripeSync(),
+    onSuccess: (r) => {
+      toast.success(`Synced ${r.synced} of ${r.total} paid reports to Stripe.`);
+      if (r.failures.length) toast.error(r.failures[0]);
+      qc.invalidateQueries({ queryKey: ["admin-report-products"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const rows = (data ?? []).filter(
     (r) =>
       !filter ||
@@ -81,14 +94,20 @@ function AdminReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/admin/emails">
-            <Button variant="outline">Email log</Button>
-          </Link>
+          <Button
+            variant="outline"
+            onClick={() => stripeSync.mutate()}
+            disabled={stripeSync.isPending}
+          >
+            {stripeSync.isPending ? "Syncing Stripe…" : "Sync prices to Stripe"}
+          </Button>
           <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
             {sync.isPending ? "Syncing…" : "Sync from code catalog"}
           </Button>
         </div>
       </div>
+
+      <AdminNav />
 
       <div className="mb-6 grid grid-cols-3 gap-3">
         <Stat label="Reports" value={data?.length ?? 0} />
