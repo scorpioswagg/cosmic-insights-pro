@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          target_email: string | null
+          target_report_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_email?: string | null
+          target_report_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_email?: string | null
+          target_report_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_invites: {
+        Row: {
+          created_at: string
+          email: string
+          invited_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          invited_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          invited_by?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           attempts: number
@@ -86,17 +140,81 @@ export type Database = {
         }
         Relationships: []
       }
+      report_entitlements: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          note: string | null
+          purchase_id: string | null
+          report_id: string
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          purchase_id?: string | null
+          report_id: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          purchase_id?: string | null
+          report_id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_entitlements_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "report_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_entitlements_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_products: {
         Row: {
           adult: boolean
           category: string
           created_at: string
+          currency: string
           icon: string
           id: string
           is_free: boolean
           is_published: boolean
           price_cents: number
+          slug: string | null
           sort_order: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
           tagline: string
           title: string
           updated_at: string
@@ -105,12 +223,16 @@ export type Database = {
           adult?: boolean
           category: string
           created_at?: string
+          currency?: string
           icon?: string
           id: string
           is_free?: boolean
           is_published?: boolean
           price_cents?: number
+          slug?: string | null
           sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           tagline?: string
           title: string
           updated_at?: string
@@ -119,15 +241,102 @@ export type Database = {
           adult?: boolean
           category?: string
           created_at?: string
+          currency?: string
           icon?: string
           id?: string
           is_free?: boolean
           is_published?: boolean
           price_cents?: number
+          slug?: string | null
           sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           tagline?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      report_purchases: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          email_sent_at: string | null
+          id: string
+          metadata: Json
+          report_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_payment_intent: string | null
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          email_sent_at?: string | null
+          id?: string
+          metadata?: Json
+          report_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          email_sent_at?: string | null
+          id?: string
+          metadata?: Json
+          report_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_purchases_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          processed_at: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          payload?: Json
+          processed_at?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          type?: string
         }
         Relationships: []
       }

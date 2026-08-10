@@ -10,6 +10,7 @@ import { generateAstroReport } from "@/lib/astrology/generate-report.functions";
 import { acknowledgeAdultConsent } from "@/lib/astrology/adult-consent.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { listPublishedReports, getIsAdmin } from "@/lib/reports/catalog.functions";
+import { createReportCheckout, getMyAccess } from "@/lib/reports/checkout.functions";
 import { formatPrice } from "@/lib/reports/pricing";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
 import { jsPDF } from "jspdf";
@@ -26,6 +27,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   const runAckAdult = useServerFn(acknowledgeAdultConsent);
   const fetchCatalog = useServerFn(listPublishedReports);
   const fetchIsAdmin = useServerFn(getIsAdmin);
+  const fetchAccess = useServerFn(getMyAccess);
+  const startCheckout = useServerFn(createReportCheckout);
 
   const { data: catalog } = useQuery({
     queryKey: ["published-report-products"],
@@ -37,6 +40,14 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     retry: false,
   });
   const isAdmin = !!adminInfo?.isAdmin;
+
+  const { data: accessInfo } = useQuery({
+    queryKey: ["my-report-access"],
+    queryFn: () => fetchAccess(),
+    retry: false,
+  });
+  const unlockedIds = new Set(accessInfo?.unlocked ?? []);
+  const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -365,6 +376,46 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     return formatPrice(p.price_cents);
   }
 
+  /** True when the user may generate this report right now. */
+  function isUnlocked(id: string): boolean {
+    if (isAdmin) return true;
+    const p = priceById.get(id);
+    if (!p) return true; // catalog not synced yet — server still enforces access
+    if (p.is_free || p.price_cents <= 0) return true;
+    return unlockedIds.has(id);
+  }
+
+  function statusLabel(id: string): string {
+    if (isAdmin) return "🆓 Included";
+    const p = priceById.get(id);
+    if (p && (p.is_free || p.price_cents <= 0)) return "🆓 Free";
+    return isUnlocked(id) ? "🔓 Unlocked" : "🔒 Locked";
+  }
+
+  async function purchase(reportId: string) {
+    setError(null);
+    setPurchasingId(reportId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session || sessionData.session.user.is_anonymous) {
+        throw new Error("Please sign in with Google before purchasing.");
+      }
+      const res = await startCheckout({ data: { reportId } });
+      if (res.alreadyOwned) {
+        toast.success("You already own this report.");
+        return;
+      }
+      if (!res.url) throw new Error("Stripe did not return a checkout URL.");
+      window.location.assign(res.url);
+    } catch (e) {
+      const msg = (e as Error).message || "Could not start checkout.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setPurchasingId(null);
+    }
+  }
+
   return (
     <section className="space-y-8">
       <div className="text-center">
@@ -422,6 +473,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
               const isLoading = loadingId === r.id;
               const isDone = !!reports[r.id];
               const isActive = activeId === r.id;
+              const unlocked = isUnlocked(r.id);
+              const isPurchasing = purchasingId === r.id;
               return (
                 <div
                   key={r.id}
@@ -430,8 +483,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                   }`}
                 >
                   <button
-                    onClick={() => generate(r.id)}
-                    disabled={isLoading}
+                    onClick={() => (unlocked ? generate(r.id) : purchase(r.id))}
+                    disabled={isLoading || isPurchasing}
                     className="text-left flex-1"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -443,7 +496,13 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                           </span>
                         )}
                         <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
-                          {isLoading ? "generating…" : isDone ? "✓ ready" : "tap to generate"}
+                          {isLoading
+                            ? "generating…"
+                            : isDone
+                              ? "✓ ready"
+                              : unlocked
+                                ? "tap to generate"
+                                : statusLabel(r.id)}
                         </span>
                       </span>
                     </div>
@@ -468,7 +527,18 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                       </button>
                     </div>
                   )}
-                  {!isDone && r.adult && (
+                  {!unlocked && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void purchase(r.id); }}
+                      disabled={isPurchasing}
+                      className="mt-3 text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
+                    >
+                      {isPurchasing
+                        ? "Opening secure checkout…"
+                        : `💳 Purchase Report · ${priceLabel(r.id) ?? ""}`}
+                    </button>
+                  )}
+                  {unlocked && !isDone && r.adult && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
