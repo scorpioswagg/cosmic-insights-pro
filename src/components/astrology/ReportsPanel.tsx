@@ -473,6 +473,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
               const isLoading = loadingId === r.id;
               const isDone = !!reports[r.id];
               const isActive = activeId === r.id;
+              const unlocked = isUnlocked(r.id);
+              const isPurchasing = purchasingId === r.id;
               return (
                 <div
                   key={r.id}
@@ -481,8 +483,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                   }`}
                 >
                   <button
-                    onClick={() => generate(r.id)}
-                    disabled={isLoading}
+                    onClick={() => (unlocked ? generate(r.id) : purchase(r.id))}
+                    disabled={isLoading || isPurchasing}
                     className="text-left flex-1"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -494,7 +496,13 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                           </span>
                         )}
                         <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
-                          {isLoading ? "generating…" : isDone ? "✓ ready" : "tap to generate"}
+                          {isLoading
+                            ? "generating…"
+                            : isDone
+                              ? "✓ ready"
+                              : unlocked
+                                ? "tap to generate"
+                                : statusLabel(r.id)}
                         </span>
                       </span>
                     </div>
@@ -519,7 +527,18 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
                       </button>
                     </div>
                   )}
-                  {!isDone && r.adult && (
+                  {!unlocked && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void purchase(r.id); }}
+                      disabled={isPurchasing}
+                      className="mt-3 text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
+                    >
+                      {isPurchasing
+                        ? "Opening secure checkout…"
+                        : `💳 Purchase Report · ${priceLabel(r.id) ?? ""}`}
+                    </button>
+                  )}
+                  {unlocked && !isDone && r.adult && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
