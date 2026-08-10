@@ -376,6 +376,46 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     return formatPrice(p.price_cents);
   }
 
+  /** True when the user may generate this report right now. */
+  function isUnlocked(id: string): boolean {
+    if (isAdmin) return true;
+    const p = priceById.get(id);
+    if (!p) return true; // catalog not synced yet — server still enforces access
+    if (p.is_free || p.price_cents <= 0) return true;
+    return unlockedIds.has(id);
+  }
+
+  function statusLabel(id: string): string {
+    if (isAdmin) return "🆓 Included";
+    const p = priceById.get(id);
+    if (p && (p.is_free || p.price_cents <= 0)) return "🆓 Free";
+    return isUnlocked(id) ? "🔓 Unlocked" : "🔒 Locked";
+  }
+
+  async function purchase(reportId: string) {
+    setError(null);
+    setPurchasingId(reportId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session || sessionData.session.user.is_anonymous) {
+        throw new Error("Please sign in with Google before purchasing.");
+      }
+      const res = await startCheckout({ data: { reportId } });
+      if (res.alreadyOwned) {
+        toast.success("You already own this report.");
+        return;
+      }
+      if (!res.url) throw new Error("Stripe did not return a checkout URL.");
+      window.location.assign(res.url);
+    } catch (e) {
+      const msg = (e as Error).message || "Could not start checkout.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setPurchasingId(null);
+    }
+  }
+
   return (
     <section className="space-y-8">
       <div className="text-center">
