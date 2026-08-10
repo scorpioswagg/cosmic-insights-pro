@@ -1,6 +1,8 @@
 // Single source of truth for "may this user open this report?".
 // Server-only: never import from client code.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { REPORTS } from "@/lib/astrology/reports-catalog";
+import { defaultPriceCents } from "./pricing";
 
 export type AccessReason =
   | "admin"
@@ -27,16 +29,46 @@ export async function isAdminUser(userId: string): Promise<boolean> {
   return !!data;
 }
 
-export async function resolveReportAccess(
-  userId: string,
-  reportId: string,
-): Promise<ReportAccess> {
-  const { data: product, error } = await supabaseAdmin
+async function loadProduct(reportId: string) {
+  const { data, error } = await supabaseAdmin
     .from("report_products")
     .select("id, title, price_cents, is_free, is_published")
     .eq("id", reportId)
     .maybeSingle();
   if (error) throw new Error(error.message);
+  if (data) return data;
+
+  // Self-heal: a report defined in code but not yet in the catalog table gets
+  // seeded with its default price so pricing is never silently zero.
+  const def = REPORTS.find((r) => r.id === reportId);
+  if (!def) return null;
+  const row = {
+    id: def.id,
+    title: def.title,
+    tagline: def.tagline,
+    category: def.category,
+    icon: def.icon,
+    adult: !!def.adult,
+    price_cents: defaultPriceCents(def),
+    is_free: false,
+    is_published: true,
+    slug: def.id,
+  };
+  await supabaseAdmin.from("report_products").upsert(row, { onConflict: "id" });
+  return {
+    id: row.id,
+    title: row.title,
+    price_cents: row.price_cents,
+    is_free: row.is_free,
+    is_published: row.is_published,
+  };
+}
+
+export async function resolveReportAccess(
+  userId: string,
+  reportId: string,
+): Promise<ReportAccess> {
+  const product = await loadProduct(reportId);
   if (!product) return { allowed: false, reason: "unknown_report", reportId };
 
   const base = {
