@@ -46,7 +46,7 @@
           "type": "object",
           "properties": {
             "category": {
-              "description": "Optional category filter (e.g. 'Core', 'Relationships', 'Growth', 'Timing', 'Vocation', 'Esoteric', 'Intimacy (18+)', 'Patriotic Collection').",
+              "description": "Optional category filter (e.g. 'Core', 'Relationships', 'Growth', 'Timing', 'Vocation', 'Esoteric', 'Intimacy (18+)', 'Patriotic Collection', 'Signature Series').",
               "type": "string"
             }
           }
