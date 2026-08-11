@@ -12,7 +12,7 @@ export default defineTool({
       .string()
       .optional()
       .describe(
-        "Optional category filter (e.g. 'Core', 'Relationships', 'Growth', 'Timing', 'Vocation', 'Esoteric', 'Intimacy (18+)', 'Patriotic Collection').",
+        "Optional category filter (e.g. 'Core', 'Relationships', 'Growth', 'Timing', 'Vocation', 'Esoteric', 'Intimacy (18+)', 'Patriotic Collection', 'Signature Series').",
       ),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
