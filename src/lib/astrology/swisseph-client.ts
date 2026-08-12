@@ -172,7 +172,7 @@ export async function calculateChart(input: BirthInput): Promise<ChartCalculatio
       name: "Swiss Ephemeris (WASM)",
       version,
       flagsUsed: FLAGS,
-      houseSystem: "Placidus",
+      houseSystem: input.timeUnknown ? "Solar Sign (birth time unknown)" : "Placidus",
       zodiac: "Tropical",
       calculatedAt: new Date().toISOString(),
     },
