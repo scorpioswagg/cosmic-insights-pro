@@ -12,6 +12,7 @@ export interface ReportChartInput {
     latitude: number;
     longitude: number;
     timezone: string;
+    timeUnknown?: boolean;
   };
   julianDayUT: number;
   utcIso: string;
@@ -57,7 +58,11 @@ function chartToPrompt(chart: ReportChartInput) {
     .join("\n");
   return `BIRTH:
 - Name: ${chart.input.name}
-- Date/Time: ${chart.input.date} ${chart.input.time} (${chart.input.timezone})
+- Date/Time: ${chart.input.date} ${
+    chart.input.timeUnknown
+      ? "TIME UNKNOWN (calculated at local noon)"
+      : chart.input.time
+  } (${chart.input.timezone})
 - Place: ${chart.input.place} (${chart.input.latitude.toFixed(4)}, ${chart.input.longitude.toFixed(4)})
 - UTC: ${chart.utcIso}  JD(UT): ${chart.julianDayUT.toFixed(5)}
 
@@ -70,6 +75,16 @@ ANGLES:
 
 HOUSE CUSPS (Placidus):
 ${houses}
+${
+  chart.input.timeUnknown
+    ? `
+BIRTH TIME STATUS: UNKNOWN.
+- Houses above are SOLAR-SIGN houses (the Sun's exact degree begins House 1). They are NOT Placidus cusps.
+- The reported "Ascendant" equals the Sun's degree and is a frame marker, not a real rising sign.
+- The Moon's degree may vary by up to ~13° across the birth day; its SIGN is reliable only if far from a cusp.
+`
+    : ""
+}
 
 ASPECTS (top 40 by tightness):
 ${aspects}`;
@@ -110,6 +125,18 @@ CHAPTER BINDING RULES (STRICT):
 - Every paragraph MUST explicitly cite at least one real placement, house cusp, or aspect from the CHART DATA.
 - Never write a paragraph of generic astrology with no citation.
 - Do not paraphrase placements in ways that change the data.
+${
+  input.chart.input.timeUnknown
+    ? `
+UNKNOWN BIRTH TIME PROTOCOL (STRICT):
+- Open the report with a short italic note: birth time unknown, solar-sign house frame in use.
+- NEVER name a rising sign, Ascendant degree, Midheaven sign, Vertex, Part of Fortune, or a Placidus cusp as fact.
+- Interpret houses as SOLAR houses ("your solar 7th house") and say so.
+- If the Moon is within 6° of a sign boundary, state both possible signs and interpret the tension.
+- Deliver the full required length and depth; never shorten or hedge the whole report — only the time-dependent factors are qualified.
+`
+    : ""
+}
 
 REPORT FRAMING:
 ${def.systemFraming}`;
