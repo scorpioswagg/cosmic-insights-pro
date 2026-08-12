@@ -105,10 +105,24 @@ export async function calculateChart(input: BirthInput): Promise<ChartCalculatio
 
   // Houses (Placidus)
   const housesRes = swe.houses(jd, input.latitude, input.longitude, "P");
-  const cusps12 = Array.from(housesRes.cusps as Float64Array).slice(1, 13).map(normalizeDeg);
-  const ascendant = normalizeDeg(housesRes.ascmc[0]);
-  const midheaven = normalizeDeg(housesRes.ascmc[1]);
-  const vertex = normalizeDeg(housesRes.ascmc[3]);
+  let cusps12 = Array.from(housesRes.cusps as Float64Array).slice(1, 13).map(normalizeDeg);
+  let ascendant = normalizeDeg(housesRes.ascmc[0]);
+  let midheaven = normalizeDeg(housesRes.ascmc[1]);
+  let vertex = normalizeDeg(housesRes.ascmc[3]);
+
+  // Unknown birth time: time-dependent angles are meaningless, so we switch to
+  // the standard solar-sign house frame (Sun's exact degree = 1st cusp, then
+  // every 30°). Planetary longitudes are still exact (computed at local noon,
+  // the minimum-error point of the day). No fabricated Ascendant is reported.
+  if (input.timeUnknown) {
+    const sunLon = normalizeDeg(
+      (bodies.find((b) => b.name === "Sun") as BodyPosition).longitude,
+    );
+    cusps12 = Array.from({ length: 12 }, (_, i) => normalizeDeg(sunLon + i * 30));
+    ascendant = sunLon;
+    midheaven = normalizeDeg(sunLon + 270);
+    vertex = normalizeDeg(sunLon + 180);
+  }
 
   // Part of Fortune (day formula: ASC + Moon - Sun; night formula flips Moon/Sun).
   const sun = bodies.find((b) => b.name === "Sun")!;
@@ -158,7 +172,7 @@ export async function calculateChart(input: BirthInput): Promise<ChartCalculatio
       name: "Swiss Ephemeris (WASM)",
       version,
       flagsUsed: FLAGS,
-      houseSystem: "Placidus",
+      houseSystem: input.timeUnknown ? "Solar Sign (birth time unknown)" : "Placidus",
       zodiac: "Tropical",
       calculatedAt: new Date().toISOString(),
     },

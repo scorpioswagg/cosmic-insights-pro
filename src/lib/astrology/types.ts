@@ -75,6 +75,8 @@ export interface BirthInput {
   longitude: number;
   timezone: string;        // IANA tz
   tzOffsetHours: number;   // resolved offset for that date (with DST)
+  /** True when the birth time is unknown; chart uses solar-sign houses. */
+  timeUnknown?: boolean;
 }
 
 export interface ChartCalculation {

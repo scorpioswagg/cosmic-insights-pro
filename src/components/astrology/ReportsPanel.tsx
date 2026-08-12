@@ -95,6 +95,7 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
           latitude: chart.input.latitude,
           longitude: chart.input.longitude,
           timezone: chart.input.timezone,
+          timeUnknown: chart.input.timeUnknown ?? false,
         },
         julianDayUT: chart.julianDayUT,
         utcIso: chart.utcIso,
