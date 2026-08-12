@@ -21,6 +21,7 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
   const [hour, setHour] = useState("");
   const [minute, setMinute] = useState("");
   const [meridiem, setMeridiem] = useState<"AM" | "PM">("AM");
+  const [timeUnknown, setTimeUnknown] = useState(false);
   const [place, setPlace] = useState("");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [picked, setPicked] = useState<GeocodeResult | null>(null);
@@ -71,16 +72,18 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
     const mN = parseInt(month, 10);
     const dN = parseInt(day, 10);
     const yN = parseInt(year, 10);
-    const hN = parseInt(hour, 10);
-    const minN = parseInt(minute, 10);
+    const hN = timeUnknown ? 12 : parseInt(hour, 10);
+    const minN = timeUnknown ? 0 : parseInt(minute, 10);
     if (!name.trim()) { setError("Please enter your full name."); return; }
     if (!mN || mN < 1 || mN > 12) { setError("Month must be between 1 and 12."); return; }
     if (!dN || dN < 1 || dN > 31) { setError("Day must be between 1 and 31."); return; }
     if (!yN || yN < 1800 || yN > 2400) { setError("Year must be between 1800 and 2400."); return; }
-    if (isNaN(hN) || hN < 1 || hN > 12) { setError("Hour must be between 1 and 12."); return; }
-    if (isNaN(minN) || minN < 0 || minN > 59) { setError("Minutes must be between 0 and 59."); return; }
+    if (!timeUnknown) {
+      if (isNaN(hN) || hN < 1 || hN > 12) { setError("Hour must be between 1 and 12."); return; }
+      if (isNaN(minN) || minN < 0 || minN > 59) { setError("Minutes must be between 0 and 59."); return; }
+    }
     const date = `${yN}-${String(mN).padStart(2, "0")}-${String(dN).padStart(2, "0")}`;
-    const h24 = meridiem === "PM" ? (hN % 12) + 12 : hN % 12;
+    const h24 = timeUnknown ? 12 : (meridiem === "PM" ? (hN % 12) + 12 : hN % 12);
     const time = `${String(h24).padStart(2, "0")}:${String(minN).padStart(2, "0")}`;
     if (!picked) {
       setError("Search and select a birth location.");
@@ -98,6 +101,7 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
         longitude: picked.longitude,
         timezone: tz,
         tzOffsetHours: offset,
+        timeUnknown,
       };
       onSubmit(input);
     } catch (e) {
@@ -162,16 +166,40 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
 
       <Field label="Birth Time (Hour / Minute / AM-PM)">
         <div className="grid grid-cols-[1fr_1fr_1.2fr] gap-2">
-          <input value={hour} onChange={(e) => setHour(e.target.value.replace(/\D/g, "").slice(0, 2))}
-            inputMode="numeric" placeholder="HH" maxLength={2} className="cosmic-input text-center" />
-          <input value={minute} onChange={(e) => setMinute(e.target.value.replace(/\D/g, "").slice(0, 2))}
-            inputMode="numeric" placeholder="MM" maxLength={2} className="cosmic-input text-center" />
-          <select value={meridiem} onChange={(e) => setMeridiem(e.target.value as "AM" | "PM")}
-            className="cosmic-input text-center">
+          <input value={timeUnknown ? "" : hour} disabled={timeUnknown}
+            onChange={(e) => setHour(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric" placeholder="HH" maxLength={2} className="cosmic-input text-center disabled:opacity-40" />
+          <input value={timeUnknown ? "" : minute} disabled={timeUnknown}
+            onChange={(e) => setMinute(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric" placeholder="MM" maxLength={2} className="cosmic-input text-center disabled:opacity-40" />
+          <select value={meridiem} disabled={timeUnknown}
+            onChange={(e) => setMeridiem(e.target.value as "AM" | "PM")}
+            className="cosmic-input text-center disabled:opacity-40">
             <option value="AM">AM</option>
             <option value="PM">PM</option>
           </select>
         </div>
+        <button
+          type="button"
+          onClick={() => setTimeUnknown((v) => !v)}
+          aria-pressed={timeUnknown}
+          className={`mt-2 w-full py-2 rounded-lg text-xs uppercase tracking-widest border transition ${
+            timeUnknown
+              ? "border-gold bg-gold/15 text-gold"
+              : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
+          }`}
+        >
+          {timeUnknown ? "✓ Birth time unknown — using solar chart" : "I don't know my birth time"}
+        </button>
+        {timeUnknown && (
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Your full report library stays available. We calculate every planet, sign, degree,
+            aspect and retrograde exactly, and use the professional solar-sign house frame
+            (your Sun's exact degree begins the 1st house) instead of a guessed Ascendant.
+            Time-dependent factors — Ascendant, Midheaven, Moon degree precision and house
+            cusps — are flagged as uncertain inside each report rather than invented.
+          </p>
+        )}
       </Field>
 
       <Field label="Birthplace">
