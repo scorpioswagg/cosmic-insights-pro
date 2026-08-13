@@ -64,6 +64,11 @@ export async function revokeEntitlement(userId: string, reportId: string) {
 export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
   const reportId = session.metadata?.report_id;
   const userId = session.metadata?.user_id;
+  const bundleId = session.metadata?.bundle_id ?? null;
+  const bundleReportIds = (session.metadata?.report_ids ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (!reportId || !userId) {
     console.error("[stripe] session missing metadata", session.id);
     return { ok: false as const, reason: "missing_metadata" };
@@ -89,6 +94,9 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         status: "paid",
         customer_email:
           session.customer_details?.email ?? session.customer_email ?? null,
+        metadata: (bundleId
+          ? { bundle_id: bundleId, report_ids: bundleReportIds }
+          : {}) as never,
       },
       { onConflict: "stripe_session_id" },
     )
@@ -96,12 +104,16 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     .single();
   if (upErr) throw new Error(upErr.message);
 
-  await grantEntitlement({
-    userId,
-    reportId,
-    source: "purchase",
-    purchaseId: purchase.id,
-  });
+  const idsToGrant = bundleReportIds.length > 0 ? bundleReportIds : [reportId];
+  for (const id of idsToGrant) {
+    await grantEntitlement({
+      userId,
+      reportId: id,
+      source: "purchase",
+      purchaseId: purchase.id,
+      note: bundleId ? `bundle:${bundleId}` : null,
+    });
+  }
 
   if (!purchase.email_sent_at && purchase.customer_email) {
     const { data: product } = await supabaseAdmin
@@ -113,7 +125,9 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       await sendPurchaseReceiptEmail({
         to: purchase.customer_email,
         name: session.customer_details?.name ?? undefined,
-        reportTitle: product?.title ?? reportId,
+        reportTitle: bundleId
+          ? `${idsToGrant.length} reports (gift set)`
+          : (product?.title ?? reportId),
         amountFormatted: formatMoney(purchase.amount_cents, purchase.currency),
         orderId: purchase.id,
       });
@@ -139,13 +153,17 @@ export async function markPurchaseFailed(sessionId: string, reason: string) {
 export async function refundPurchaseByPaymentIntent(paymentIntentId: string) {
   const { data: rows } = await supabaseAdmin
     .from("report_purchases")
-    .select("id, user_id, report_id")
+    .select("id, user_id, report_id, metadata")
     .eq("stripe_payment_intent", paymentIntentId);
   for (const row of rows ?? []) {
     await supabaseAdmin
       .from("report_purchases")
       .update({ status: "refunded" })
       .eq("id", row.id);
-    await revokeEntitlement(row.user_id, row.report_id);
+    const meta = (row.metadata ?? {}) as { report_ids?: string[] };
+    const ids = Array.isArray(meta.report_ids) && meta.report_ids.length
+      ? meta.report_ids
+      : [row.report_id];
+    for (const id of ids) await revokeEntitlement(row.user_id, id);
   }
 }
