@@ -153,13 +153,17 @@ export async function markPurchaseFailed(sessionId: string, reason: string) {
 export async function refundPurchaseByPaymentIntent(paymentIntentId: string) {
   const { data: rows } = await supabaseAdmin
     .from("report_purchases")
-    .select("id, user_id, report_id")
+    .select("id, user_id, report_id, metadata")
     .eq("stripe_payment_intent", paymentIntentId);
   for (const row of rows ?? []) {
     await supabaseAdmin
       .from("report_purchases")
       .update({ status: "refunded" })
       .eq("id", row.id);
-    await revokeEntitlement(row.user_id, row.report_id);
+    const meta = (row.metadata ?? {}) as { report_ids?: string[] };
+    const ids = Array.isArray(meta.report_ids) && meta.report_ids.length
+      ? meta.report_ids
+      : [row.report_id];
+    for (const id of ids) await revokeEntitlement(row.user_id, id);
   }
 }
