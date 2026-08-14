@@ -422,6 +422,26 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     }
   }
 
+  async function purchaseBundle(bundleId: string) {
+    setError(null);
+    setPurchasingBundleId(bundleId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session || sessionData.session.user.is_anonymous) {
+        throw new Error("Please sign in with Google before purchasing.");
+      }
+      const res = await startBundleCheckout({ data: { bundleId } });
+      if (!res.url) throw new Error("Stripe did not return a checkout URL.");
+      window.location.assign(res.url);
+    } catch (e) {
+      const msg = (e as Error).message || "Could not start checkout.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setPurchasingBundleId(null);
+    }
+  }
+
   return (
     <section className="space-y-8">
       <div className="text-center">
@@ -430,6 +450,90 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
           Each report is generated from your real Swiss Ephemeris chart data — no templates, no guesswork.
         </p>
+      </div>
+
+      <div>
+        <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">
+          Gift Sets &amp; Bundles
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {GIFT_BUNDLES.map((bundle) => {
+            const pricing = bundlePricing(bundle);
+            if (pricing.count === 0) return null;
+            const titles = bundle.reportIds
+              .map((id) => REPORTS.find((r) => r.id === id)?.title)
+              .filter((t): t is string => !!t);
+            const expanded = expandedBundleId === bundle.id;
+            const shown = expanded ? titles : titles.slice(0, 6);
+            const owned = titles.length > 0 && bundle.reportIds.every((id) => isUnlocked(id));
+            const pct = pricing.listCents
+              ? Math.round((pricing.savingsCents / pricing.listCents) * 100)
+              : 0;
+            return (
+              <div
+                key={bundle.id}
+                className="rounded-xl border border-gold/25 bg-card/40 p-5 flex flex-col gap-3"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl leading-none">{bundle.icon}</span>
+                  <div>
+                    <h4 className="font-display text-lg text-gradient-gold">{bundle.title}</h4>
+                    <p className="text-xs text-muted-foreground">{bundle.tagline}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="font-display text-2xl text-gold">
+                    {formatPrice(pricing.priceCents)}
+                  </span>
+                  {pricing.savingsCents > 0 && (
+                    <>
+                      <span className="text-sm text-muted-foreground line-through">
+                        {formatPrice(pricing.listCents)}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-gold border border-gold/40 rounded-full px-2 py-0.5">
+                        Save {formatPrice(pricing.savingsCents)} ({pct}%)
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className="text-xs text-muted-foreground/90">
+                  <p className="mb-1 text-foreground/80">{pricing.count} reports included:</p>
+                  <ul className="space-y-0.5 list-disc list-inside">
+                    {shown.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                  {titles.length > 6 && (
+                    <button
+                      onClick={() => setExpandedBundleId(expanded ? null : bundle.id)}
+                      className="mt-1 text-[11px] uppercase tracking-widest text-gold hover:underline"
+                    >
+                      {expanded ? "Show less" : `Show all ${titles.length} titles`}
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-xs italic text-muted-foreground/80">{bundle.giftNote}</p>
+
+                <button
+                  onClick={() => purchaseBundle(bundle.id)}
+                  disabled={isAdmin || owned || purchasingBundleId === bundle.id}
+                  className="mt-auto text-[11px] uppercase tracking-widest text-gold border border-gold/50 rounded-md px-4 py-2 hover:bg-gold/10 transition disabled:opacity-50"
+                >
+                  {isAdmin
+                    ? "Included"
+                    : owned
+                      ? "You own this set"
+                      : purchasingBundleId === bundle.id
+                        ? "Starting checkout…"
+                        : `Gift this set — ${formatPrice(pricing.priceCents)}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {Object.entries(grouped).map(([category, items]) => (
