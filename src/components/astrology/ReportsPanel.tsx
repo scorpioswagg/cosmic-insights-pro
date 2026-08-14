@@ -11,6 +11,8 @@ import { acknowledgeAdultConsent } from "@/lib/astrology/adult-consent.functions
 import { supabase } from "@/integrations/supabase/client";
 import { listPublishedReports, getIsAdmin } from "@/lib/reports/catalog.functions";
 import { createReportCheckout, getMyAccess } from "@/lib/reports/checkout.functions";
+import { createBundleCheckout } from "@/lib/reports/bundle-checkout.functions";
+import { GIFT_BUNDLES, bundlePricing } from "@/lib/reports/bundles";
 import { formatPrice } from "@/lib/reports/pricing";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
 import { jsPDF } from "jspdf";
@@ -29,6 +31,7 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   const fetchIsAdmin = useServerFn(getIsAdmin);
   const fetchAccess = useServerFn(getMyAccess);
   const startCheckout = useServerFn(createReportCheckout);
+  const startBundleCheckout = useServerFn(createBundleCheckout);
 
   const { data: catalog } = useQuery({
     queryKey: ["published-report-products"],
@@ -48,6 +51,8 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
   });
   const unlockedIds = new Set(accessInfo?.unlocked ?? []);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
+  const [purchasingBundleId, setPurchasingBundleId] = useState<string | null>(null);
+  const [expandedBundleId, setExpandedBundleId] = useState<string | null>(null);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
