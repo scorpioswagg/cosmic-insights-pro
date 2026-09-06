@@ -3464,6 +3464,177 @@ const ORACLE_VAULT: ReportDefinition[] = [
 
 REPORTS.push(...ORACLE_VAULT);
 
+/**
+ * UNFILTERED SERIES — radically candid, 31-chapter flagship readings.
+ * Brutally honest without cruelty; every difficult claim bound to real chart evidence.
+ */
+const UNFILTERED_STANDARD = `UNFILTERED SERIES STANDARD (STRICT — this is the most demanding tier in the library):
+
+VOICE: Write like an extraordinarily perceptive person who has finally decided to say the uncomfortable things everyone else has been too polite to say. Fearless, direct, specific, psychologically penetrating, provocative. Do not flatter. Do not soften every uncomfortable interpretation with a compliment. Do not be cruel for entertainment — be brutally honest because the purpose is self-awareness.
+
+LENGTH: Thirty-one chapters, roughly 5,000 words total. Every chapter must carry real content; no chapter may be a paragraph of throat-clearing.
+
+EVIDENCE RULE: Every significant interpretation — especially every negative one — must be traceable to actual calculated chart data. Name the placement, sign, degree, house and aspect you are reading. Never invent placements, aspects, houses, degrees, birth data, memories, motives, trauma, diagnoses, crimes or relationship history.
+
+FOR EACH MAJOR DIFFICULT PATTERN, work through all seven steps:
+1. Identify the relevant astrological signature (named, with degree/house/aspect).
+2. Explain the conventional astrological symbolism.
+3. Describe its healthier expression.
+4. Describe its shadow expression.
+5. Explain how the shadow could affect relationships, communication, ambition, intimacy, conflict or self-image.
+6. Give the reader the uncomfortable question they need to ask themselves.
+7. Explain the mature path forward.
+
+DISTINGUISH EXPLICITLY between: chart evidence / astrological interpretation / behavioral possibility / shadow manifestation / mature manifestation. Also distinguish intentional, unconscious, defensive, immature and mature expressions of the same energy — not every difficult pattern is malicious. Separate toxicity from trauma.
+
+HUNT CONTRADICTIONS aggressively wherever the chart supports them: self-image vs. interpersonal impact, independence vs. avoidance, confidence vs. ego, standards vs. perfectionism, passion vs. obsession, loyalty vs. possessiveness, boundaries vs. emotional walls, sensitivity vs. defensiveness, ambition vs. control, honesty vs. cruelty, generosity vs. validation-seeking, intuition vs. projection.
+
+REQUIRED LANGUAGE: "this may suggest…", "this can manifest as…", "under pressure, this pattern may become…", "the shadow expression of this placement can look like…", "others may experience this as…".
+
+FORBIDDEN LANGUAGE: "you definitely do this", "you were abused", "you have a personality disorder", "you are a narcissist", "you are dangerous", "you will cheat", "you will become abusive". Never present astrology as scientific diagnosis, factual mind-reading or objective psychological certainty. Never declare the reader evil, mentally ill or incapable of change.
+
+CHALLENGE QUESTIONS: where the symbolism genuinely supports it, confront the reader directly — e.g. "What if the trait you call independence sometimes looks like emotional avoidance?", "What if your standards are actually defenses?", "What if your confidence sometimes becomes entitlement?" Use them only where the chart earns them.
+
+STRENGTHS: present honestly, including how each strength becomes a liability when overused. No flattery for its own sake.
+
+CLOSING: the penultimate chapter delivers a concise numbered "Brutal Truths" verdict — the five uncomfortable insights this specific chart most supports. The final chapter closes on transformation: the chart is not a prison, and the same energies producing difficult behavior become extraordinary strengths when consciously integrated. End on the idea that the chart does not give an excuse — it gives a mirror.
+
+Use the strongest supported chart signatures first. Avoid anything that could apply to anyone.`;
+
+const UNFILTERED: ReportDefinition[] = [
+  {
+    id: "unfiltered-brutal-blueprint",
+    title: "The Brutal Blueprint™",
+    tagline: "The astrology report that tells you what everyone else is too afraid to say.",
+    icon: "🪞",
+    category: "Unfiltered Series",
+    targetWords: 5000,
+    sections: [
+      "Before We Get Brutal: How to Read This Report",
+      "The Person You Think You Are",
+      "The Person Other People Experience",
+      "The Mask You Wear",
+      "What You're Hiding From Yourself",
+      "Your Psychological Pressure Points",
+      "Your Darkest Personality Patterns",
+      "The Shadow Self",
+      "Your Favorite Defense Mechanisms",
+      "How You Sabotage Yourself",
+      "The Things You Do That Drive People Crazy",
+      "Control, Power & Ego",
+      "Jealousy, Possession & Insecurity",
+      "Love: The Fantasy vs. The Reality",
+      "How You Behave When You Want Someone",
+      "How You Behave When You Stop Wanting Someone",
+      "Conflict: Who You Become When You're Angry",
+      "Communication: What You Say vs. What People Hear",
+      "Your Relationship Red Flags",
+      "Your Friendship Red Flags",
+      "Your Accountability Problem",
+      "The Contradictions in Your Personality",
+      "The Lies You Might Tell Yourself",
+      "What You Blame on Other People",
+      "What Other People May Be Afraid to Tell You",
+      "Your Greatest Strengths — Without the Flattery",
+      "Where Your Darkness Becomes Power",
+      "What Happens If You Never Change",
+      "The Mature Version of You",
+      "The Brutal Truths You Actually Need",
+      "The Final Verdict: Your Cosmic Reality Check",
+    ],
+    systemFraming:
+      `You are generating THE BRUTAL BLUEPRINT™, a radically candid astrological report. Your job is not to flatter the subject. Your job is to hold up an astrological mirror and describe what the chart may reveal about personality patterns, contradictions, blind spots, shadow tendencies, interpersonal behavior, defenses, vulnerabilities and potential for self-sabotage. Examine the uncomfortable material: where this chart may express as selfish, controlling, avoidant, jealous, manipulative, emotionally unavailable, attention-seeking, defensive, hypocritical, impulsive or self-defeating. Distinguish throughout between who the subject believes they are, who they present themselves as, and how their patterns may actually land on other people. The report should read as a cosmic psychological mirror rather than a conventional astrology reading, and should make the reader occasionally think "that's uncomfortable", "that's exactly what I do", "I never looked at it that way" — earned through specificity, never sensationalism.\n\n${UNFILTERED_STANDARD}`,
+  },
+  {
+    id: "unfiltered-unspoken-contract",
+    title: "The Unspoken Contract™",
+    tagline: "The brutally honest truth about how you actually love people.",
+    icon: "🖇️",
+    category: "Unfiltered Series",
+    targetWords: 5000,
+    sections: [
+      "Before We Get Brutal: How to Read This Report",
+      "The Partner You Believe You Are",
+      "The Partner Other People Actually Get",
+      "The Terms You Never Say Out Loud",
+      "What You Promise vs. What You Deliver",
+      "What You Secretly Expect in Return",
+      "Your Attachment Pattern, Without the Comfort",
+      "The Type You Chase and Why It Keeps Costing You",
+      "How You Behave in the First Three Weeks",
+      "The Moment You Start Withdrawing",
+      "Your Intimacy Ceiling",
+      "How You Use Sex, Distance, or Attention as Leverage",
+      "Jealousy, Comparison & Ownership",
+      "The Fights You Start Without Admitting You Started Them",
+      "Stonewalling, Scorekeeping & Silent Punishment",
+      "How You Behave When You're the One Who Cares Less",
+      "How You Behave When You're the One Who Cares More",
+      "The Apologies You Give That Aren't Apologies",
+      "What You Call Boundaries That May Be Walls",
+      "What You Call Loyalty That May Be Control",
+      "Your Exit Style: How You End Things",
+      "The Stories You Tell About Your Exes",
+      "Your Part in the Pattern You Keep Blaming Them For",
+      "Friendship: The Same Contract, Different Signature",
+      "Family: Where the Contract Was Written",
+      "What Partners May Be Afraid to Tell You",
+      "Your Real Relational Gifts — Without the Flattery",
+      "Where Your Intensity Becomes Devotion",
+      "What Happens If You Renegotiate Nothing",
+      "The Brutal Truths You Actually Need",
+      "The Final Verdict: The Contract You Choose Next",
+    ],
+    systemFraming:
+      `You are generating THE UNSPOKEN CONTRACT™, a radically candid astrological report about how this person actually conducts relationships — as opposed to how they describe themselves. Read Venus, Mars, the Moon, the 5th, 7th and 8th houses, their rulers, Saturn's and Pluto's contacts to relational planets, and the aspect network binding them, and expose the unwritten terms the subject brings to intimacy: what they silently expect, what they withhold, what they punish, what they call a boundary that may be a wall, what they call loyalty that may be control. Cover pursuit, withdrawal, leverage, jealousy, conflict, apology, exit style and the recurring pattern they blame on other people. Be unflinching about their part in it while separating defensive behavior from malicious behavior.\n\n${UNFILTERED_STANDARD}`,
+  },
+  {
+    id: "unfiltered-ambition-autopsy",
+    title: "The Ambition Autopsy™",
+    tagline: "Why you haven't gotten where you said you'd be.",
+    icon: "🧨",
+    category: "Unfiltered Series",
+    targetWords: 5000,
+    sections: [
+      "Before We Get Brutal: How to Read This Report",
+      "The Version of Success You Say You Want",
+      "The Version Your Chart Is Actually Built For",
+      "The Gap Between Stated Goals and Actual Behavior",
+      "What You Actually Optimize For",
+      "Your Relationship With Effort",
+      "Perfectionism as a Socially Acceptable Defense",
+      "Procrastination: What You're Really Avoiding",
+      "The Point Where You Reliably Quit",
+      "How You Sabotage Momentum Right Before It Pays",
+      "Confidence vs. Entitlement",
+      "Your Discipline Problem, Named Precisely",
+      "How You Handle Being Outperformed",
+      "Envy, Comparison & the Scoreboard You Won't Admit To",
+      "Authority: How You React to Being Told What to Do",
+      "Power: How You Behave When You Have It",
+      "Money: Avoidance, Anxiety, or Identity",
+      "What You Overspend On and What That Buys You Emotionally",
+      "How You Talk About Money vs. How You Handle It",
+      "Risk: Reckless, Frozen, or Selectively Brave",
+      "The Excuses You Reuse",
+      "What You Blame on Timing, Luck, or Other People",
+      "Collaboration: Why Some People Stop Working With You",
+      "The Feedback You Dismiss",
+      "What Colleagues May Be Afraid to Tell You",
+      "Your Real Working Genius — Without the Flattery",
+      "Where Your Hunger Becomes Mastery",
+      "What Happens If You Keep This Operating System",
+      "The Mature Professional Version of You",
+      "The Brutal Truths You Actually Need",
+      "The Final Verdict: The Work You Owe Yourself",
+    ],
+    systemFraming:
+      `You are generating THE AMBITION AUTOPSY™, a radically candid astrological report on drive, discipline, money, status and self-image. Read Mars, Saturn, the Sun, the Midheaven and its ruler, the 2nd, 6th, 8th and 10th houses, Jupiter's excesses and the hard aspects binding them, and perform a post-mortem on the distance between what this person says they want and what their behavior actually produces. Name the quitting point, the avoidance dressed as standards, the procrastination dressed as preparation, the entitlement dressed as confidence, the money behavior dressed as principle, and the excuses that recur. Be specific about consequences at work, in money and in reputation, and separate genuine constitutional limits from self-inflicted ones.\n\n${UNFILTERED_STANDARD}`,
+  },
+];
+
+REPORTS.push(...UNFILTERED);
+
 export function getReport(id: string): ReportDefinition | undefined {
   return REPORTS.find((r) => r.id === id);
 }
