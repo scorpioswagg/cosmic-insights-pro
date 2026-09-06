@@ -3,7 +3,7 @@ export interface ReportDefinition {
   title: string;
   tagline: string;
   icon: string;
-  category: "Core" | "Relationships" | "Growth" | "Timing" | "Vocation" | "Esoteric" | "Intimacy (18+)" | "Patriotic Collection" | "Signature Series" | "Frontier Series" | "Oracle Vault";
+  category: "Core" | "Relationships" | "Growth" | "Timing" | "Vocation" | "Esoteric" | "Intimacy (18+)" | "Patriotic Collection" | "Signature Series" | "Frontier Series" | "Oracle Vault" | "Unfiltered Series";
   /** Marks reports with mature/explicit sexual content. UI should gate behind an 18+ confirmation. */
   adult?: boolean;
   /** Sections the LLM must produce, in order. */
