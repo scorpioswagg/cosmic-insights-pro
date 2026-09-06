@@ -100,6 +100,18 @@ function Index() {
     }
   }
 
+  async function handleAppleSignIn() {
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setError(`Sign-in failed: ${result.error.message}`);
+    }
+    if (result.redirected) {
+      return;
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     setUser(null);
@@ -159,6 +171,7 @@ function Index() {
                     </button>
                   </div>
                 ) : (
+                  <div className="flex items-center gap-2">
                   <button
                     onClick={handleGoogleSignIn}
                     className="inline-flex items-center gap-2 text-xs uppercase tracking-wider px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition"
@@ -171,6 +184,16 @@ function Index() {
                     </svg>
                     Sign in with Google
                   </button>
+                  <button
+                    onClick={handleAppleSignIn}
+                    className="inline-flex items-center gap-2 text-xs uppercase tracking-wider px-4 py-2 rounded-md bg-foreground text-background hover:opacity-90 transition"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M16.365 1.43c0 1.14-.42 2.2-1.26 3.05-.9.93-1.99 1.47-3.11 1.38-.02-.11-.04-.28-.04-.45 0-1.09.47-2.2 1.28-3.02.85-.87 2.05-1.5 3.09-1.53.02.19.04.38.04.57zM20.9 17.1c-.5 1.15-.74 1.66-1.38 2.68-.9 1.42-2.16 3.19-3.73 3.2-1.39.01-1.75-.9-3.64-.89-1.89.01-2.28.91-3.68.9-1.57-.02-2.77-1.62-3.67-3.04C2.3 16.03 2.04 11.4 3.6 8.95c1.1-1.74 2.85-2.76 4.49-2.76 1.67 0 2.72.91 4.1.91 1.34 0 2.16-.91 4.09-.91 1.46 0 3.01.79 4.11 2.16-3.61 1.98-3.03 7.14.51 8.75z" />
+                    </svg>
+                    Sign in with Apple
+                  </button>
+                  </div>
                 )
               )}
             </div>
