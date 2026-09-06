@@ -100,6 +100,18 @@ function Index() {
     }
   }
 
+  async function handleAppleSignIn() {
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setError(`Sign-in failed: ${result.error.message}`);
+    }
+    if (result.redirected) {
+      return;
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     setUser(null);
