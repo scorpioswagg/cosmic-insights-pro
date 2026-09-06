@@ -171,6 +171,7 @@ function Index() {
                     </button>
                   </div>
                 ) : (
+                  <div className="flex items-center gap-2">
                   <button
                     onClick={handleGoogleSignIn}
                     className="inline-flex items-center gap-2 text-xs uppercase tracking-wider px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition"
