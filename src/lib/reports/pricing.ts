@@ -6,6 +6,7 @@ import type { ReportDefinition } from "@/lib/astrology/reports-catalog";
  * readers price above short focused ones.
  */
 export function defaultPriceCents(def: Pick<ReportDefinition, "category" | "targetWords">): number {
+  if (def.category === "Unfiltered Series") return 9900;
   if (def.category === "Oracle Vault") return 8900;
   if (def.category === "Frontier Series") return 7900;
   if (def.category === "Signature Series") return def.targetWords >= 3200 ? 6900 : 5900;

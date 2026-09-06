@@ -141,24 +141,51 @@ UNKNOWN BIRTH TIME PROTOCOL (STRICT):
 REPORT FRAMING:
 ${def.systemFraming}`;
 
-  const sectionsList = def.sections.map((s, i) => `${i + 1}. ${s}`).join("\n");
-  const prompt = `Write the **${def.title}** report for ${input.chart.input.name}.
+  const model = gateway("google/gemini-3-flash-preview");
 
-Target length: ~${def.targetWords} words.
+  function buildPrompt(sections: string[], opts: { partOf?: [number, number]; previous?: string }) {
+    const sectionsList = sections.map((s, i) => `${i + 1}. ${s}`).join("\n");
+    const partNote = opts.partOf
+      ? `\nThis is PART ${opts.partOf[0]} of ${opts.partOf[1]} of a single continuous report. Write only the sections listed below — no preamble, no recap, no closing summary unless the final section calls for one.`
+      : "";
+    const prevNote = opts.previous
+      ? `\nPreviously written sections (for continuity — do NOT repeat them):\n${opts.previous.slice(-4000)}`
+      : "";
+    return `Write the **${def.title}** report for ${input.chart.input.name}.${partNote}
+
+Target length for this part: ~${Math.round(def.targetWords / (opts.partOf ? opts.partOf[1] : 1))} words.
 
 Required sections (use exactly these as ## H2 headings, in order):
 ${sectionsList}
 
 CHART DATA:
 ${chartBlock}
+${prevNote}
 
-Begin the report now. Do not include a preamble or restate the chart data; weave it into interpretation.`;
+Begin now. Do not restate the chart data; weave it into interpretation.`;
+  }
 
-  const { text } = await generateText({
-    model: gateway("google/gemini-3-flash-preview"),
-    system,
-    prompt,
-  });
+  let text: string;
+
+  // Very long reports (Unfiltered Series and similar) are produced in two passes so
+  // the model never truncates mid-report.
+  if (def.targetWords >= 4500 && def.sections.length > 20) {
+    const mid = Math.ceil(def.sections.length / 2);
+    const first = await generateText({
+      model,
+      system,
+      prompt: buildPrompt(def.sections.slice(0, mid), { partOf: [1, 2] }),
+    });
+    const second = await generateText({
+      model,
+      system,
+      prompt: buildPrompt(def.sections.slice(mid), { partOf: [2, 2], previous: first.text }),
+    });
+    text = `${first.text.trim()}\n\n${second.text.trim()}`;
+  } else {
+    const result = await generateText({ model, system, prompt: buildPrompt(def.sections, {}) });
+    text = result.text;
+  }
 
   return {
     reportId: def.id,
