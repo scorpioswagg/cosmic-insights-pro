@@ -143,6 +143,7 @@ ${def.systemFraming}`;
 
   const model = gateway("google/gemini-3-flash-preview");
 
+  const reportDef = def;
   function buildPrompt(sections: string[], opts: { partOf?: [number, number]; previous?: string }) {
     const sectionsList = sections.map((s, i) => `${i + 1}. ${s}`).join("\n");
     const partNote = opts.partOf
