@@ -143,6 +143,7 @@ ${def.systemFraming}`;
 
   const model = gateway("google/gemini-3-flash-preview");
 
+  const reportDef = def;
   function buildPrompt(sections: string[], opts: { partOf?: [number, number]; previous?: string }) {
     const sectionsList = sections.map((s, i) => `${i + 1}. ${s}`).join("\n");
     const partNote = opts.partOf
@@ -151,9 +152,9 @@ ${def.systemFraming}`;
     const prevNote = opts.previous
       ? `\nPreviously written sections (for continuity — do NOT repeat them):\n${opts.previous.slice(-4000)}`
       : "";
-    return `Write the **${def.title}** report for ${input.chart.input.name}.${partNote}
+    return `Write the **${reportDef.title}** report for ${input.chart.input.name}.${partNote}
 
-Target length for this part: ~${Math.round(def.targetWords / (opts.partOf ? opts.partOf[1] : 1))} words.
+Target length for this part: ~${Math.round(reportDef.targetWords / (opts.partOf ? opts.partOf[1] : 1))} words.
 
 Required sections (use exactly these as ## H2 headings, in order):
 ${sectionsList}
