@@ -152,9 +152,9 @@ ${def.systemFraming}`;
     const prevNote = opts.previous
       ? `\nPreviously written sections (for continuity — do NOT repeat them):\n${opts.previous.slice(-4000)}`
       : "";
-    return `Write the **${def.title}** report for ${input.chart.input.name}.${partNote}
+    return `Write the **${reportDef.title}** report for ${input.chart.input.name}.${partNote}
 
-Target length for this part: ~${Math.round(def.targetWords / (opts.partOf ? opts.partOf[1] : 1))} words.
+Target length for this part: ~${Math.round(reportDef.targetWords / (opts.partOf ? opts.partOf[1] : 1))} words.
 
 Required sections (use exactly these as ## H2 headings, in order):
 ${sectionsList}
