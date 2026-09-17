@@ -12,6 +12,13 @@ export interface ReportDefinition {
   targetWords: number;
   /** Specialized framing handed to the LLM. */
   systemFraming: string;
+  /** True when the report needs a second (partner) chart. */
+  requiresPartner?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  estimatedPages?: number;
+  readingMinutes?: number;
+  difficulty?: string;
 }
 
 export const REPORTS: ReportDefinition[] = [
