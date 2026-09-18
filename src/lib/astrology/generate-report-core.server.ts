@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { REPORTS } from "./reports-catalog";
+import { computeMultiSynastry, multiSynastryToPrompt, type SerialChart } from "./synastry";
 
 // Minimal chart shape needed for report generation (subset of ChartCalculation).
 export interface ReportChartInput {
@@ -24,6 +25,7 @@ export interface ReportChartInput {
     signDegree: number;
     house?: number;
     retrograde: boolean;
+    longitude?: number;
   }>;
   houses: number[];
   aspects: Array<{
@@ -100,6 +102,7 @@ export interface GeneratedReportPayload {
 export async function generateReportMarkdown(input: {
   reportId: string;
   chart: ReportChartInput;
+  charts?: ReportChartInput[];
 }): Promise<GeneratedReportPayload> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
@@ -107,8 +110,17 @@ export async function generateReportMarkdown(input: {
   const def = REPORTS.find((r) => r.id === input.reportId);
   if (!def) throw new Error(`Unknown report: ${input.reportId}`);
 
+  const charts = input.charts?.length ? input.charts : [input.chart];
+  const minCharts = def.minCharts ?? (def.requiresPartner ? 2 : 1);
+  const maxCharts = def.maxCharts ?? (def.requiresPartner ? 2 : 1);
+  if (charts.length < minCharts) throw new Error(`${def.title} requires at least ${minCharts} charts.`);
+  if (charts.length > maxCharts) throw new Error(`${def.title} accepts at most ${maxCharts} charts.`);
+
   const gateway = createLovableAiGatewayProvider(key);
-  const chartBlock = chartToPrompt(input.chart);
+  const chartBlock = chartToPrompt(charts[0]);
+  const multiBlock = charts.length > 1
+    ? multiSynastryToPrompt(computeMultiSynastry(charts as SerialChart[]))
+    : "";
 
   const system = `You are a master astrologer writing for the Cosmic Blueprint platform.
 
@@ -139,7 +151,9 @@ UNKNOWN BIRTH TIME PROTOCOL (STRICT):
 }
 
 REPORT FRAMING:
-${def.systemFraming}`;
+${def.systemFraming}
+
+${charts.length > 1 ? "MULTI-CHART EVIDENCE RULES:\n- Analyze every unique participant pair from the supplied evidence.\n- For 3+ charts, describe the network without inventing a composite chart or deterministic group verdict.\n- Preserve participant names and A→B/B→A overlay ownership exactly." : ""}
 
   const model = gateway("google/gemini-3-flash-preview");
 
@@ -159,8 +173,11 @@ Target length for this part: ~${Math.round(reportDef.targetWords / (opts.partOf 
 Required sections (use exactly these as ## H2 headings, in order):
 ${sectionsList}
 
-CHART DATA:
+CHART DATA FOR PRIMARY PARTICIPANT:
 ${chartBlock}
+${charts.length > 1 ? "
+MULTI-CHART SYNASTRY EVIDENCE:
+" + multiBlock : ""}
 ${prevNote}
 
 Begin now. Do not restate the chart data; weave it into interpretation.`;
