@@ -4,6 +4,7 @@ import { BirthForm } from "@/components/astrology/BirthForm";
 import { ChartWheel } from "@/components/astrology/ChartWheel";
 import { PlacementsTable } from "@/components/astrology/PlacementsTable";
 import { ReportsPanel } from "@/components/astrology/ReportsPanel";
+import { SynastryWorkspace } from "@/components/astrology/SynastryWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { WelcomeModal } from "@/components/WelcomeModal";
@@ -236,6 +237,14 @@ function Index() {
             <strong>Calculation failed:</strong> {error}
           </div>
         )}
+
+        <section className="mt-20">
+          <SynastryWorkspace
+            isAuthed={!!user}
+            isAdmin={isAdmin}
+            onSignIn={handleGoogleSignIn}
+          />
+        </section>
 
         {chart && (
           <section id="chart-result" className="mt-20 space-y-8">
