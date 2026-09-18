@@ -25,24 +25,22 @@ const AspectSchema = z.object({
 
 const ChartSchema = z.object({
   input: z.object({
-    input: z.object({
-      name: z.string(),
-      date: z.string(),
-      time: z.string(),
-      place: z.string(),
-      latitude: z.number(),
-      longitude: z.number(),
-      timezone: z.string(),
-      timeUnknown: z.boolean().optional(),
-    }),
-    julianDayUT: z.number(),
-    utcIso: z.string(),
-    ascendant: z.number(),
-    midheaven: z.number(),
-    bodies: z.array(BodySchema).max(30),
-    houses: z.array(z.number()).length(12),
-    aspects: z.array(AspectSchema).max(80),
+    name: z.string(),
+    date: z.string(),
+    time: z.string(),
+    place: z.string(),
+    latitude: z.number(),
+    longitude: z.number(),
+    timezone: z.string(),
+    timeUnknown: z.boolean().optional(),
   }),
+  julianDayUT: z.number(),
+  utcIso: z.string(),
+  ascendant: z.number(),
+  midheaven: z.number(),
+  bodies: z.array(BodySchema).max(30),
+  houses: z.array(z.number()).length(12),
+  aspects: z.array(AspectSchema).max(80),
 });
 
 const InputSchema = z.object({
