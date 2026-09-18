@@ -117,7 +117,7 @@ export async function generateReportMarkdown(input: {
   if (charts.length > maxCharts) throw new Error(`${def.title} accepts at most ${maxCharts} charts.`);
 
   const gateway = createLovableAiGatewayProvider(key);
-  const chartBlock = chartToPrompt(charts[0]);
+  const chartBlock = charts.map((chart) => chartToPrompt(chart)).join("\n\n===== NEXT PARTICIPANT =====\n\n");
   const multiBlock = charts.length > 1
     ? multiSynastryToPrompt(computeMultiSynastry(charts as SerialChart[]))
     : "";
@@ -174,7 +174,7 @@ Target length for this part: ~${Math.round(reportDef.targetWords / (opts.partOf 
 Required sections (use exactly these as ## H2 headings, in order):
 ${sectionsList}
 
-CHART DATA FOR PRIMARY PARTICIPANT:
+CHART DATA FOR ALL PARTICIPANTS:
 ${chartBlock}
 ${charts.length > 1 ? "
 MULTI-CHART SYNASTRY EVIDENCE:
