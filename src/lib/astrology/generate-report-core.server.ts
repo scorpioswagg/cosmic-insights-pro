@@ -153,7 +153,9 @@ UNKNOWN BIRTH TIME PROTOCOL (STRICT):
 REPORT FRAMING:
 ${def.systemFraming}
 
-${charts.length > 1 ? "MULTI-CHART EVIDENCE RULES:\n- Analyze every unique participant pair from the supplied evidence.\n- For 3+ charts, describe the network without inventing a composite chart or deterministic group verdict.\n- Preserve participant names and A→B/B→A overlay ownership exactly." : ""}
+${charts.length > 1 ? "MULTI-CHART EVIDENCE RULES:\n- Analyze every unique participant pair from the supplied evidence.\n- For 3+ charts, describe the network without inventing a composite chart or deterministic group verdict.\n- Preserve participant names and A→B/B→A overlay ownership exactly." : ""}`;
+
+  const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-3-flash-preview");
 
   const reportDef = def;
