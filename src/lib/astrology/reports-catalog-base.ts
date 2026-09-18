@@ -12,8 +12,12 @@ export interface ReportDefinition {
   targetWords: number;
   /** Specialized framing handed to the LLM. */
   systemFraming: string;
-  /** True when the report needs a second (partner) chart. */
+  /** True when the report needs a second or additional participant chart(s). */
   requiresPartner?: boolean;
+  /** Minimum number of charts required by the report. Defaults to 1. */
+  minCharts?: number;
+  /** Maximum number of charts accepted by the report. Defaults to 2 for partner reports. */
+  maxCharts?: number;
   seoTitle?: string;
   seoDescription?: string;
   estimatedPages?: number;

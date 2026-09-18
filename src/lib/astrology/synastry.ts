@@ -273,3 +273,63 @@ ${ba}
 RELATIONSHIP DOMAIN SCORES (deterministic, derived from the data above — interpret them, do not restate them as a list):
 ${scores}`;
 }
+
+
+export interface MultiSynastryPair {
+  aIndex: number;
+  bIndex: number;
+  aName: string;
+  bName: string;
+  result: SynastryResult;
+}
+
+export interface MultiSynastryResult {
+  participants: string[];
+  pairs: MultiSynastryPair[];
+}
+
+/** Compute every unique pair in a 2+ participant synastry group. */
+export function computeMultiSynastry(charts: SerialChart[]): MultiSynastryResult {
+  if (charts.length < 2) throw new Error("Multi-chart synastry requires at least two charts.");
+  if (charts.length > 5) throw new Error("Multi-chart synastry supports at most five charts.");
+  const pairs: MultiSynastryPair[] = [];
+  for (let i = 0; i < charts.length; i++) {
+    for (let j = i + 1; j < charts.length; j++) {
+      const result = computeSynastry(charts[i], charts[j]);
+      pairs.push({
+        aIndex: i,
+        bIndex: j,
+        aName: charts[i].input.name,
+        bName: charts[j].input.name,
+        result,
+      });
+    }
+  }
+  return { participants: charts.map((c) => c.input.name), pairs };
+}
+
+/** Compact evidence block for a 2+ chart report prompt. */
+export function multiSynastryToPrompt(group: MultiSynastryResult, limitPerPair = 16): string {
+  return group.pairs.map((pair) => {
+    const syn = pair.result;
+    const aspects = syn.aspects.slice(0, limitPerPair)
+      .map((x) => `- ${pair.aName}'s ${x.a} ${x.type} ${pair.bName}'s ${x.b} (orb ${x.orb.toFixed(2)}°)`)
+      .join("\n");
+    const ab = syn.aToB
+      .map((o) => `- ${pair.aName}'s ${o.body} (${o.sign}) falls in ${pair.bName}'s House ${o.house}`)
+      .join("\n");
+    const ba = syn.bToA
+      .map((o) => `- ${pair.bName}'s ${o.body} (${o.sign}) falls in ${pair.aName}'s House ${o.house}`)
+      .join("\n");
+    const scores = Object.entries(syn.scores).map(([k,v]) => `- ${k}: ${v}/100`).join("\n");
+    return `PAIR: ${pair.aName} ↔ ${pair.bName}
+MUTUAL ASPECTS:
+${aspects || "- none within orb"}
+A→B HOUSE OVERLAYS (A planets in B houses):
+${ab || "- none"}
+B→A HOUSE OVERLAYS (B planets in A houses):
+${ba || "- none"}
+DETERMINISTIC DOMAIN SIGNALS:
+${scores}`;
+  }).join("\n\n--- PAIR BREAK ---\n\n");
+}

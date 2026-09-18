@@ -23,27 +23,30 @@ const AspectSchema = z.object({
   applying: z.boolean(),
 });
 
+const ChartSchema = z.object({
+  input: z.object({
+    name: z.string(),
+    date: z.string(),
+    time: z.string(),
+    place: z.string(),
+    latitude: z.number(),
+    longitude: z.number(),
+    timezone: z.string(),
+    timeUnknown: z.boolean().optional(),
+  }),
+  julianDayUT: z.number(),
+  utcIso: z.string(),
+  ascendant: z.number(),
+  midheaven: z.number(),
+  bodies: z.array(BodySchema).max(30),
+  houses: z.array(z.number()).length(12),
+  aspects: z.array(AspectSchema).max(80),
+});
+
 const InputSchema = z.object({
   reportId: z.string().min(1).max(64),
-  chart: z.object({
-    input: z.object({
-      name: z.string(),
-      date: z.string(),
-      time: z.string(),
-      place: z.string(),
-      latitude: z.number(),
-      longitude: z.number(),
-      timezone: z.string(),
-      timeUnknown: z.boolean().optional(),
-    }),
-    julianDayUT: z.number(),
-    utcIso: z.string(),
-    ascendant: z.number(),
-    midheaven: z.number(),
-    bodies: z.array(BodySchema).max(30),
-    houses: z.array(z.number()).length(12),
-    aspects: z.array(AspectSchema).max(80),
-  }),
+  chart: ChartSchema,
+  charts: z.array(ChartSchema).min(2).max(5).optional(),
 });
 
 export const generateAstroReport = createServerFn({ method: "POST" })
@@ -76,5 +79,5 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       }
     }
 
-    return await generateReportMarkdown({ reportId: data.reportId, chart: data.chart });
+    return await generateReportMarkdown({ reportId: data.reportId, chart: data.chart, charts: data.charts });
   });
