@@ -130,10 +130,30 @@ export function BirthForm({
     }
   }
 
+  const steps = [
+    { label: "Name", done: name.trim().length > 0 },
+    {
+      label: "Date",
+      done: !!month && !!day && year.length === 4,
+    },
+    { label: "Time", done: timeUnknown || (!!hour && !!minute) },
+    { label: "Place", done: !!picked },
+  ];
+  const completed = steps.filter((s) => s.done).length;
+  const pct = Math.round((completed / steps.length) * 100);
+  const ready = completed === steps.length;
+
   return (
-    <form onSubmit={submit} className="glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep">
+    <form
+      onSubmit={submit}
+      className={
+        bare
+          ? "space-y-5"
+          : "glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep"
+      }
+    >
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-gradient-gold">Birth Details</h2>
+        <h2 className="font-display text-2xl text-gradient-gold">{title}</h2>
         {showSample && (
           <button type="button" onClick={loadKyle}
             className="text-xs uppercase tracking-widest text-gold hover:underline">
@@ -141,6 +161,27 @@ export function BirthForm({
           </button>
         )}
       </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-widest text-muted-foreground">
+          <span>{completed} of {steps.length} complete</span>
+          <span className={ready ? "text-gold" : ""}>{pct}%</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gold transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          {steps.map((s) => (
+            <span key={s.label} className={s.done ? "text-gold" : ""}>
+              {s.done ? "✓" : "○"} {s.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
 
       {!isAuthed && (
         <div className="rounded-xl border border-gold/50 bg-gold/10 p-4 space-y-3">
