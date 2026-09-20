@@ -42,13 +42,15 @@ export function ReportsPanel({ chart }: { chart: ChartCalculation }) {
     queryFn: () => fetchIsAdmin(),
     retry: false,
   });
-  const isAdmin = !!adminInfo?.isAdmin;
-
   const { data: accessInfo } = useQuery({
     queryKey: ["my-report-access"],
     queryFn: () => fetchAccess(),
     retry: false,
   });
+  // Treat either server-side admin check as authoritative. getMyAccess also
+  // returns the admin flag, so a transient catalog-admin query cannot make an
+  // actual admin look like a paying customer in the UI.
+  const isAdmin = !!adminInfo?.isAdmin || !!accessInfo?.isAdmin;
   const unlockedIds = new Set(accessInfo?.unlocked ?? []);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [purchasingBundleId, setPurchasingBundleId] = useState<string | null>(null);
