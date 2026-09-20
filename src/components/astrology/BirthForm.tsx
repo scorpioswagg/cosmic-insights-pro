@@ -303,7 +303,7 @@ export function BirthForm({
         {busy
           ? "Consulting the heavens…"
           : isAuthed
-            ? "Calculate Cosmic Blueprint"
+            ? submitLabel
             : "Sign in to calculate"}
       </button>
 
