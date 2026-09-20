@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
@@ -72,6 +72,23 @@ export function ReportsPanel({
     failures: { title: string; message: string }[];
   } | null>(null);
   const isBulkRunning = bulk !== null;
+
+  // Time-based progress estimate while a report is being written.
+  const [genPct, setGenPct] = useState(0);
+  useEffect(() => {
+    if (!loadingId) {
+      setGenPct(0);
+      return;
+    }
+    const started = Date.now();
+    setGenPct(3);
+    const t = setInterval(() => {
+      const secs = (Date.now() - started) / 1000;
+      // Asymptotic approach to 95% over roughly two minutes.
+      setGenPct(Math.min(95, Math.round(95 * (1 - Math.exp(-secs / 55)))));
+    }, 500);
+    return () => clearInterval(t);
+  }, [loadingId]);
 
   function toChartPayload(c: ChartCalculation) {
     return {
