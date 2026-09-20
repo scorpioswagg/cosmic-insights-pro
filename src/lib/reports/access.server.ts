@@ -21,6 +21,19 @@ export interface ReportAccess {
 }
 
 export async function isAdminUser(userId: string): Promise<boolean> {
+  // Prefer a direct service-role lookup so the admin bypass does not depend on
+  // RPC exposure/caching. Fall back to the existing SECURITY DEFINER RPC for
+  // backwards compatibility with projects where direct table reads are blocked.
+  const { data: roleRow, error: roleError } = await supabaseAdmin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .limit(1)
+    .maybeSingle();
+
+  if (!roleError) return !!roleRow;
+
   const { data, error } = await supabaseAdmin.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
@@ -68,6 +81,22 @@ export async function resolveReportAccess(
   userId: string,
   reportId: string,
 ): Promise<ReportAccess> {
+  // ADMIN BYPASS MUST HAPPEN BEFORE ANY PURCHASE/ENTITLEMENT LOOKUP.
+  // Use the canonical code catalog so an admin can generate a newly-added
+  // report even before its DB product row is synced.
+  const def = REPORTS.find((r) => r.id === reportId);
+  if (!def) return { allowed: false, reason: "unknown_report", reportId };
+
+  if (await isAdminUser(userId)) {
+    return {
+      allowed: true,
+      reason: "admin",
+      reportId,
+      title: def.title,
+      priceCents: defaultPriceCents(def),
+    };
+  }
+
   const product = await loadProduct(reportId);
   if (!product) return { allowed: false, reason: "unknown_report", reportId };
 
@@ -76,8 +105,6 @@ export async function resolveReportAccess(
     title: product.title,
     priceCents: product.price_cents,
   };
-
-  if (await isAdminUser(userId)) return { allowed: true, reason: "admin", ...base };
   if (!product.is_published) return { allowed: false, reason: "unpublished", ...base };
   if (product.is_free || product.price_cents <= 0)
     return { allowed: true, reason: "free", ...base };
