@@ -340,14 +340,29 @@ function Index() {
                 )}
               </div>
               {showPartnerForm && !partnerChart && (
-                <div className="pt-2 border-t border-border/40">
+                <div className="pt-4 border-t border-border/40">
+                  <p className="text-xs text-muted-foreground mb-4 max-w-xl">
+                    Enter your partner's birth details exactly as recorded. Their chart is
+                    calculated with the same Swiss Ephemeris engine as yours, then compared
+                    against it — shared aspects and house overlays both ways.
+                  </p>
                   <BirthForm
                     onSubmit={handlePartnerCalc}
                     busy={partnerBusy}
                     isAuthed={!!user}
-                    showSample={isAdmin}
+                    showSample={false}
                     onSignIn={handleGoogleSignIn}
+                    title="Partner Birth Details"
+                    nameLabel="Partner's Full Name"
+                    submitLabel="Calculate Partner Chart"
+                    hideGuide
+                    bare
                   />
+                  {partnerBusy && (
+                    <p className="mt-3 text-xs text-gold">
+                      Calculating partner chart…
+                    </p>
+                  )}
                 </div>
               )}
             </div>
