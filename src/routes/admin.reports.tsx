@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   listAllReports,
   syncReportCatalog,
+  exportStripeCatalogCsv,
   updateReportProduct,
   type ReportProduct,
 } from "@/lib/reports/catalog.functions";
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/admin/reports")({
 function AdminReportsPage() {
   const fetchAll = useServerFn(listAllReports);
   const runSync = useServerFn(syncReportCatalog);
+  const runExportCsv = useServerFn(exportStripeCatalogCsv);
   const runUpdate = useServerFn(updateReportProduct);
   const runStripeSync = useServerFn(syncStripePrices);
   const qc = useQueryClient();
@@ -51,8 +53,27 @@ function AdminReportsPage() {
   const sync = useMutation({
     mutationFn: () => runSync(),
     onSuccess: (r) => {
-      toast.success(`Catalog synced — ${r.added} new report${r.added === 1 ? "" : "s"} added.`);
+      toast.success(
+        `Catalog synced — ${r.added} added, ${r.updated ?? 0} updated, ${r.unfiltered ?? "?"} Unfiltered, ${r.total} total.`,
+      );
       qc.invalidateQueries({ queryKey: ["admin-report-products"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const csvExport = useMutation({
+    mutationFn: () => runExportCsv({ data: { unfilteredOnly: false } }),
+    onSuccess: (res) => {
+      const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${res.count} products to CSV`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -100,6 +121,13 @@ function AdminReportsPage() {
             disabled={stripeSync.isPending}
           >
             {stripeSync.isPending ? "Syncing Stripe…" : "Sync prices to Stripe"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => csvExport.mutate()}
+            disabled={csvExport.isPending}
+          >
+            {csvExport.isPending ? "Exporting…" : "Download Stripe CSV"}
           </Button>
           <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
             {sync.isPending ? "Syncing…" : "Sync from code catalog"}
