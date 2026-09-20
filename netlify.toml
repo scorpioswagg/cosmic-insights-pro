@@ -1,32 +1,21 @@
 # Cosmic Blueprint — Netlify deploy
-# Satisfies Header rules, Redirect rules, and Pages/deploy-preview checks.
+# Header rules, Redirect rules, and deploy-preview for cosmicblueprint2026
 
 [build]
   command = "npm run build"
-  # TanStack Start (Vite) client assets. Nitro may also emit .output/public;
-  # Netlify publishes this folder for static assets.
   publish = "dist/client"
 
 [build.environment]
   NODE_VERSION = "22"
-  # Prefer Netlify Nitro preset so SSR/server functions land correctly.
   NITRO_PRESET = "netlify"
 
-# SPA / client-side routes (admin, checkout, reports, etc.)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  force = false
-  conditions = {Role = ["admin", ""]}
-
-# Explicit fallback without role condition (works for all visitors)
+# SPA fallback for TanStack Router client routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Security and caching headers (Header rules check)
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -38,15 +27,5 @@
 
 [[headers]]
   for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
