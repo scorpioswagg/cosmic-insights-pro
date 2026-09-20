@@ -77,8 +77,10 @@ export const listAllReports = createServerFn({ method: "GET" })
   });
 
 /**
- * Upserts every report in the code catalog into the database, filling in
- * default prices. Existing rows keep their admin-set price/visibility.
+ * Upserts every report in the code catalog into the database.
+ * - New rows: default price, published.
+ * - Existing rows: refresh presentation fields.
+ * - Unfiltered Series rows: force $99 and published so the 18/20 ship together.
  */
 export const syncReportCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -91,7 +93,7 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
     if (readErr) throw new Error(readErr.message);
     const known = new Set((existing ?? []).map((r) => r.id));
 
-    const inserts = REPORTS.filter((r) => !known.has(r.id)).map((r, i) => ({
+    const inserts = REPORTS.filter((r) => !known.has(r.id)).map((r) => ({
       id: r.id,
       title: r.title,
       tagline: r.tagline,
@@ -101,7 +103,8 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
       price_cents: defaultPriceCents(r),
       is_free: false,
       is_published: true,
-      sort_order: REPORTS.findIndex((x) => x.id === r.id) + i * 0,
+      sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
+      slug: r.id,
     }));
 
     if (inserts.length > 0) {
@@ -109,22 +112,109 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    // Keep presentation fields in sync with code for rows that already exist.
+    let updated = 0;
     for (const r of REPORTS) {
-      if (!known.has(r.id)) continue;
-      await context.supabase
+      const patch: Record<string, unknown> = {
+        title: r.title,
+        tagline: r.tagline,
+        category: r.category,
+        icon: r.icon,
+        adult: !!r.adult,
+      };
+      // Ship Unfiltered Series at the listed $99 and published.
+      if (r.category === "Unfiltered Series") {
+        patch.price_cents = defaultPriceCents(r);
+        patch.is_published = true;
+        patch.is_free = false;
+      }
+      const { error } = await context.supabase
         .from("report_products")
-        .update({
-          title: r.title,
-          tagline: r.tagline,
-          category: r.category,
-          icon: r.icon,
-          adult: !!r.adult,
-        })
+        .update(patch)
         .eq("id", r.id);
+      if (!error) updated += 1;
     }
 
-    return { added: inserts.length, total: REPORTS.length };
+    return {
+      added: inserts.length,
+      updated,
+      total: REPORTS.length,
+      unfiltered: REPORTS.filter((r) => r.category === "Unfiltered Series").length,
+    };
+  });
+
+/**
+ * Build a Stripe Product CSV for the full published catalog (or Unfiltered only).
+ * Admin downloads this and can use it as a pricing audit / bulk reference.
+ */
+export const exportStripeCatalogCsv = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        unfilteredOnly: z.boolean().optional(),
+      })
+      .optional()
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    const unfilteredOnly = !!data?.unfilteredOnly;
+
+    const { data: rows, error } = await context.supabase
+      .from("report_products")
+      .select(
+        "id, title, tagline, category, price_cents, currency, is_free, is_published, stripe_product_id, stripe_price_id",
+      )
+      .order("category", { ascending: true })
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const filtered = (rows ?? []).filter((r) =>
+      unfilteredOnly ? r.category === "Unfiltered Series" : true,
+    );
+
+    const esc = (s: string | null | undefined) => {
+      const v = (s ?? "").replace(/"/g, '""');
+      return `"${v}"`;
+    };
+
+    const header = [
+      "report_id",
+      "name",
+      "description",
+      "category",
+      "price_usd",
+      "price_cents",
+      "currency",
+      "is_free",
+      "is_published",
+      "stripe_product_id",
+      "stripe_price_id",
+    ].join(",");
+
+    const lines = filtered.map((r) =>
+      [
+        esc(r.id),
+        esc(r.title),
+        esc(r.tagline),
+        esc(r.category),
+        (r.price_cents / 100).toFixed(2),
+        String(r.price_cents),
+        esc(r.currency ?? "usd"),
+        r.is_free ? "true" : "false",
+        r.is_published ? "true" : "false",
+        esc(r.stripe_product_id),
+        esc(r.stripe_price_id),
+      ].join(","),
+    );
+
+    return {
+      filename: unfilteredOnly
+        ? "cosmic-blueprint-unfiltered-stripe-catalog.csv"
+        : "cosmic-blueprint-stripe-catalog.csv",
+      csv: [header, ...lines].join("\n") + "\n",
+      count: filtered.length,
+    };
   });
 
 const UpdateSchema = z.object({
