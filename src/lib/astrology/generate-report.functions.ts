@@ -61,7 +61,7 @@ export const generateAstroReport = createServerFn({ method: "POST" })
 
     // Entitlement gate — the single server-side source of truth for access.
     const { assertReportAccess } = await import("@/lib/reports/access.server");
-    await assertReportAccess(context.userId, data.reportId);
+    const access = await assertReportAccess(context.userId, data.reportId);
 
     // Adult (18+) reports require a persisted server-side consent acknowledgment
     // stored on the user's profile. Client-only confirms are bypassable.
@@ -85,9 +85,39 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       );
     }
 
-    return await generateReportMarkdown({
+    const result = await generateReportMarkdown({
       reportId: data.reportId,
       chart: data.chart,
       partnerChart: data.partnerChart,
     });
+
+    // Best-effort activity log for the admin portal (purchases + free generations).
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const email =
+        (context.claims as { email?: string })?.email ??
+        null;
+      await supabaseAdmin.from("admin_audit_log").insert({
+        actor_id: context.userId,
+        actor_email: email,
+        action: "report.generate",
+        target_user_id: context.userId,
+        target_email: email,
+        target_report_id: data.reportId,
+        metadata: {
+          title: def.title,
+          chartName: data.chart.input.name,
+          partnerName: data.partnerChart?.input.name ?? null,
+          accessReason: access.reason,
+          isFree:
+            access.reason === "admin" ||
+            access.reason === "free" ||
+            (access.priceCents ?? 1) <= 0,
+        },
+      });
+    } catch {
+      // Never block report delivery on logging failure.
+    }
+
+    return result;
   });
