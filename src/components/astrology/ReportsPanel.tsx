@@ -515,9 +515,25 @@ export function ReportsPanel({
         </div>
       )}
 
-      {Object.entries(grouped).map(([category, list]) => (
+      {Object.entries(grouped).map(([category, list]) => {
+        const built = list.filter((r) => reports[r.id]).length;
+        const catPct = list.length ? Math.round((built / list.length) * 100) : 0;
+        return (
         <div key={category}>
-          <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">{category}</h3>
+          <div className="mb-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground">{category}</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {built} of {list.length} built
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gold transition-all duration-500"
+                style={{ width: `${catPct}%` }}
+              />
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((r) => {
               const isDone = !!reports[r.id];
