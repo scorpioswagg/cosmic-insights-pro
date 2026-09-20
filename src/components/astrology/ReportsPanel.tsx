@@ -47,7 +47,7 @@ export function ReportsPanel({
     queryFn: () => fetchIsAdmin(),
     retry: false,
   });
-  const isAdmin = !!adminInfo?.isAdmin;
+  const isAdmin = !!adminInfo?.isAdmin || !!accessInfo?.isAdmin;
 
   const { data: accessInfo } = useQuery({
     queryKey: ["my-report-access"],
