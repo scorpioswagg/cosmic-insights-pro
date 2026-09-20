@@ -85,7 +85,7 @@ export function ReportsPanel({
     const t = setInterval(() => {
       const secs = (Date.now() - started) / 1000;
       // Asymptotic approach to 95% over roughly two minutes.
-      setGenPct(Math.min(95, Math.round(95 * (1 - Math.exp(-secs / 55)))));
+      setGenPct(Math.min(95, Math.round(95 * (1 - Math.exp(-secs / 55))));
     }, 500);
     return () => clearInterval(t);
   }, [loadingId]);
@@ -450,7 +450,7 @@ export function ReportsPanel({
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h4 className="font-display text-lg text-gradient-gold">{bundle.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{bundle.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{bundle.tagline}</p>
                   </div>
                   {owned && (
                     <span className="text-[10px] uppercase tracking-widest text-gold border border-gold/40 rounded px-2 py-0.5 shrink-0">
@@ -480,7 +480,7 @@ export function ReportsPanel({
                       <span className="text-gold">Included</span>
                     ) : (
                       <>
-                        <span className="text-foreground font-medium">{formatPrice(pricing.saleCents)}</span>
+                        <span className="text-foreground font-medium">{formatPrice(pricing.priceCents)}</span>
                         {pct > 0 && (
                           <span className="text-xs text-muted-foreground ml-2 line-through">
                             {formatPrice(pricing.listCents)}
@@ -515,25 +515,9 @@ export function ReportsPanel({
         </div>
       )}
 
-      {Object.entries(grouped).map(([category, list]) => {
-        const built = list.filter((r) => reports[r.id]).length;
-        const catPct = list.length ? Math.round((built / list.length) * 100) : 0;
-        return (
+      {Object.entries(grouped).map(([category, list]) => (
         <div key={category}>
-          <div className="mb-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground">{category}</h3>
-              <span className="text-[11px] text-muted-foreground">
-                {built} of {list.length} built
-              </span>
-            </div>
-            <div className="mt-1.5 h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gold transition-all duration-500"
-                style={{ width: `${catPct}%` }}
-              />
-            </div>
-          </div>
+          <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">{category}</h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((r) => {
               const isDone = !!reports[r.id];
@@ -568,35 +552,6 @@ export function ReportsPanel({
                     )}
                     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{r.tagline}</p>
                   </button>
-
-                  {isLoading && (
-                    <div className="mt-3 space-y-1">
-                      <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gold transition-all duration-500"
-                          style={{ width: `${genPct}%` }}
-                        />
-                      </div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                        Writing your report · {genPct}%
-                      </p>
-                    </div>
-                  )}
-
-                  {unlocked && !isLoading && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); void generate(r.id); }}
-                      disabled={isBulkRunning || (r.requiresPartner && !partnerChart)}
-                      className="mt-3 w-full block text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
-                    >
-                      {r.requiresPartner && !partnerChart
-                        ? "Add partner details first"
-                        : isDone
-                          ? "↻ Regenerate report"
-                          : "✦ Generate report"}
-                    </button>
-                  )}
-
                   {isDone && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <button
@@ -617,7 +572,7 @@ export function ReportsPanel({
                     <button
                       onClick={(e) => { e.stopPropagation(); void purchase(r.id); }}
                       disabled={isPurchasing}
-                      className="mt-3 text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
+                      className="mt-3 w-full text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
                     >
                       {isPurchasing
                         ? "Opening secure checkout…"
@@ -631,7 +586,7 @@ export function ReportsPanel({
                         void generateOneAndDownloadPdf(r.id);
                       }}
                       disabled={isLoading}
-                      className="mt-3 text-[11px] uppercase tracking-widest text-gold/80 border border-gold/30 rounded-md py-1.5 hover:bg-gold/10 transition disabled:opacity-50"
+                      className="mt-3 w-full text-[11px] uppercase tracking-widest text-gold/80 border border-gold/30 rounded-md py-1.5 hover:bg-gold/10 transition disabled:opacity-50"
                     >
                       ↓ Generate & download PDF
                     </button>
@@ -641,8 +596,7 @@ export function ReportsPanel({
             })}
           </div>
         </div>
-        );
-      })}
+      ))}
 
       {bulk && (
         <div className="glass rounded-xl p-4 border border-gold/30 text-sm">
@@ -657,6 +611,21 @@ export function ReportsPanel({
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {loadingId && (
+        <div className="glass rounded-xl p-4 border border-gold/30">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-gold">Writing report…</span>
+            <span className="text-muted-foreground">{genPct}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-gold transition-all duration-500"
+              style={{ width: `${genPct}%` }}
+            />
+          </div>
         </div>
       )}
 
