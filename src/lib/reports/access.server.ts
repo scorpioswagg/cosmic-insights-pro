@@ -20,13 +20,73 @@ export interface ReportAccess {
   priceCents?: number;
 }
 
+/**
+ * True when the user is an administrator (unlimited free report generation).
+ * Uses user_roles directly — has_role() RPC can fail under service-role
+ * because auth.uid() is null, which previously blocked admins with "payment required".
+ */
 export async function isAdminUser(userId: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  return !!data;
+  if (!userId) return false;
+
+  // 1) Authoritative table read (service role bypasses RLS).
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .limit(1)
+      .maybeSingle();
+    if (!error && data) return true;
+  } catch {
+    // continue to fallbacks
+  }
+
+  // 2) RPC fallback (works when called with a user JWT in some setups).
+  try {
+    const { data, error } = await supabaseAdmin.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (!error && data) return true;
+  } catch {
+    // continue
+  }
+
+  // 3) Pending admin invite → self-heal grant on first privileged action.
+  try {
+    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const email = userRes?.user?.email?.toLowerCase()?.trim();
+    if (email) {
+      const { data: invite } = await supabaseAdmin
+        .from("admin_invites")
+        .select("email")
+        .eq("email", email)
+        .maybeSingle();
+      if (invite) {
+        await supabaseAdmin
+          .from("user_roles")
+          .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+        return true;
+      }
+
+      // 4) Explicit env allowlist: ADMIN_EMAILS=a@x.com,b@y.com
+      const allow = (process.env.ADMIN_EMAILS || process.env.SITE_ADMIN_EMAIL || "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      if (allow.includes(email)) {
+        await supabaseAdmin
+          .from("user_roles")
+          .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+        return true;
+      }
+    }
+  } catch {
+    // Never throw from admin detection — treat as non-admin.
+  }
+
+  return false;
 }
 
 async function loadProduct(reportId: string) {
