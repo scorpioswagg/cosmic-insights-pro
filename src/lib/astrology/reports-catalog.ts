@@ -1,6 +1,7 @@
 import { REPORTS as BASE_REPORTS } from "./reports-catalog-base";
 import { UNFILTERED_SERIES_REPORTS } from "./unfiltered-series-catalog";
 import { SYNASTRY_SERIES_REPORTS } from "./synastry-reports-catalog";
+import { SYNASTRY_EXPANSION_REPORTS } from "./synastry-expansion";
 
 export type { ReportDefinition } from "./reports-catalog-base";
 import type { ReportDefinition } from "./reports-catalog-base";
@@ -15,7 +16,7 @@ import type { ReportDefinition } from "./reports-catalog-base";
  */
 export const REPORTS: ReportDefinition[] = Array.from(
   new Map(
-    [...BASE_REPORTS, ...UNFILTERED_SERIES_REPORTS, ...SYNASTRY_SERIES_REPORTS].map(
+    [...BASE_REPORTS, ...UNFILTERED_SERIES_REPORTS, ...SYNASTRY_SERIES_REPORTS, ...SYNASTRY_EXPANSION_REPORTS].map(
       (report) => [report.id, report],
     ),
   ).values(),
