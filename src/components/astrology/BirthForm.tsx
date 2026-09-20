@@ -11,9 +11,30 @@ interface Props {
   /** Admin-only convenience: prefill the validation chart. */
   showSample?: boolean;
   onSignIn?: () => void;
+  /** Heading shown at the top of the form. */
+  title?: string;
+  /** Submit button label when idle and authenticated. */
+  submitLabel?: string;
+  /** Label for the name field. */
+  nameLabel?: string;
+  /** Hide the long "How to fill this out" guide (used for the partner form). */
+  hideGuide?: boolean;
+  /** Renders as a plain block instead of a glass card. */
+  bare?: boolean;
 }
 
-export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false, onSignIn }: Props) {
+export function BirthForm({
+  onSubmit,
+  busy,
+  isAuthed = false,
+  showSample = false,
+  onSignIn,
+  title = "Birth Details",
+  submitLabel = "Calculate Cosmic Blueprint",
+  nameLabel = "Full Name",
+  hideGuide = false,
+  bare = false,
+}: Props) {
   const [name, setName] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
