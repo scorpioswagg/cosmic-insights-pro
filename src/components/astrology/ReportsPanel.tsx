@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
@@ -72,6 +72,23 @@ export function ReportsPanel({
     failures: { title: string; message: string }[];
   } | null>(null);
   const isBulkRunning = bulk !== null;
+
+  // Time-based progress estimate while a report is being written.
+  const [genPct, setGenPct] = useState(0);
+  useEffect(() => {
+    if (!loadingId) {
+      setGenPct(0);
+      return;
+    }
+    const started = Date.now();
+    setGenPct(3);
+    const t = setInterval(() => {
+      const secs = (Date.now() - started) / 1000;
+      // Asymptotic approach to 95% over roughly two minutes.
+      setGenPct(Math.min(95, Math.round(95 * (1 - Math.exp(-secs / 55)))));
+    }, 500);
+    return () => clearInterval(t);
+  }, [loadingId]);
 
   function toChartPayload(c: ChartCalculation) {
     return {
@@ -498,9 +515,25 @@ export function ReportsPanel({
         </div>
       )}
 
-      {Object.entries(grouped).map(([category, list]) => (
+      {Object.entries(grouped).map(([category, list]) => {
+        const built = list.filter((r) => reports[r.id]).length;
+        const catPct = list.length ? Math.round((built / list.length) * 100) : 0;
+        return (
         <div key={category}>
-          <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">{category}</h3>
+          <div className="mb-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xs uppercase tracking-[0.3em] text-muted-foreground">{category}</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {built} of {list.length} built
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gold transition-all duration-500"
+                style={{ width: `${catPct}%` }}
+              />
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((r) => {
               const isDone = !!reports[r.id];
@@ -535,6 +568,35 @@ export function ReportsPanel({
                     )}
                     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{r.tagline}</p>
                   </button>
+
+                  {isLoading && (
+                    <div className="mt-3 space-y-1">
+                      <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gold transition-all duration-500"
+                          style={{ width: `${genPct}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Writing your report · {genPct}%
+                      </p>
+                    </div>
+                  )}
+
+                  {unlocked && !isLoading && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void generate(r.id); }}
+                      disabled={isBulkRunning || (r.requiresPartner && !partnerChart)}
+                      className="mt-3 w-full block text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
+                    >
+                      {r.requiresPartner && !partnerChart
+                        ? "Add partner details first"
+                        : isDone
+                          ? "↻ Regenerate report"
+                          : "✦ Generate report"}
+                    </button>
+                  )}
+
                   {isDone && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <button
@@ -579,7 +641,8 @@ export function ReportsPanel({
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {bulk && (
         <div className="glass rounded-xl p-4 border border-gold/30 text-sm">

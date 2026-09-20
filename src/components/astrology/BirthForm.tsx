@@ -11,9 +11,30 @@ interface Props {
   /** Admin-only convenience: prefill the validation chart. */
   showSample?: boolean;
   onSignIn?: () => void;
+  /** Heading shown at the top of the form. */
+  title?: string;
+  /** Submit button label when idle and authenticated. */
+  submitLabel?: string;
+  /** Label for the name field. */
+  nameLabel?: string;
+  /** Hide the long "How to fill this out" guide (used for the partner form). */
+  hideGuide?: boolean;
+  /** Renders as a plain block instead of a glass card. */
+  bare?: boolean;
 }
 
-export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false, onSignIn }: Props) {
+export function BirthForm({
+  onSubmit,
+  busy,
+  isAuthed = false,
+  showSample = false,
+  onSignIn,
+  title = "Birth Details",
+  submitLabel = "Calculate Cosmic Blueprint",
+  nameLabel = "Full Name",
+  hideGuide = false,
+  bare = false,
+}: Props) {
   const [name, setName] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -109,10 +130,30 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
     }
   }
 
+  const steps = [
+    { label: "Name", done: name.trim().length > 0 },
+    {
+      label: "Date",
+      done: !!month && !!day && year.length === 4,
+    },
+    { label: "Time", done: timeUnknown || (!!hour && !!minute) },
+    { label: "Place", done: !!picked },
+  ];
+  const completed = steps.filter((s) => s.done).length;
+  const pct = Math.round((completed / steps.length) * 100);
+  const ready = completed === steps.length;
+
   return (
-    <form onSubmit={submit} className="glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep">
+    <form
+      onSubmit={submit}
+      className={
+        bare
+          ? "space-y-5"
+          : "glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep"
+      }
+    >
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-gradient-gold">Birth Details</h2>
+        <h2 className="font-display text-2xl text-gradient-gold">{title}</h2>
         {showSample && (
           <button type="button" onClick={loadKyle}
             className="text-xs uppercase tracking-widest text-gold hover:underline">
@@ -120,6 +161,27 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
           </button>
         )}
       </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-widest text-muted-foreground">
+          <span>{completed} of {steps.length} complete</span>
+          <span className={ready ? "text-gold" : ""}>{pct}%</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gold transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          {steps.map((s) => (
+            <span key={s.label} className={s.done ? "text-gold" : ""}>
+              {s.done ? "✓" : "○"} {s.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
 
       {!isAuthed && (
         <div className="rounded-xl border border-gold/50 bg-gold/10 p-4 space-y-3">
@@ -139,16 +201,18 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
         </div>
       )}
 
-      <div className="rounded-xl border border-gold/20 bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-1.5">
-        <p className="text-gold uppercase tracking-widest text-[0.7rem]">How to fill this out</p>
-        <p><span className="text-foreground">1. Name —</span> Enter the name you'd like on your chart.</p>
-        <p><span className="text-foreground">2. Birth date —</span> Type the month (1–12), day (1–31), and full 4-digit year exactly as on your birth certificate.</p>
-        <p><span className="text-foreground">3. Birth time —</span> Use the time on your birth certificate. Accuracy matters: even 10 minutes can shift your Ascendant and house cusps. Pick AM or PM.</p>
-        <p><span className="text-foreground">4. Birthplace —</span> Type your city, then click <em>Search</em> and pick the matching location so we can resolve your latitude, longitude, and timezone automatically.</p>
-        <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements, aspects, and to generate personalized reports.</p>
-      </div>
+      {!hideGuide && (
+        <div className="rounded-xl border border-gold/20 bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-1.5">
+          <p className="text-gold uppercase tracking-widest text-[0.7rem]">How to fill this out</p>
+          <p><span className="text-foreground">1. Name —</span> Enter the name you'd like on your chart.</p>
+          <p><span className="text-foreground">2. Birth date —</span> Type the month (1–12), day (1–31), and full 4-digit year exactly as on your birth certificate.</p>
+          <p><span className="text-foreground">3. Birth time —</span> Use the time on your birth certificate. Accuracy matters: even 10 minutes can shift your Ascendant and house cusps. Pick AM or PM.</p>
+          <p><span className="text-foreground">4. Birthplace —</span> Type your city, then click <em>Search</em> and pick the matching location so we can resolve your latitude, longitude, and timezone automatically.</p>
+          <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements, aspects, and to generate personalized reports.</p>
+        </div>
+      )}
 
-      <Field label="Full Name">
+      <Field label={nameLabel}>
         <input value={name} onChange={(e) => setName(e.target.value)}
           className="cosmic-input" placeholder="Your name" />
       </Field>
@@ -239,7 +303,7 @@ export function BirthForm({ onSubmit, busy, isAuthed = false, showSample = false
         {busy
           ? "Consulting the heavens…"
           : isAuthed
-            ? "Calculate Cosmic Blueprint"
+            ? submitLabel
             : "Sign in to calculate"}
       </button>
 
