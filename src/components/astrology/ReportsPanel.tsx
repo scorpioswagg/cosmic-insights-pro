@@ -568,6 +568,35 @@ export function ReportsPanel({
                     )}
                     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{r.tagline}</p>
                   </button>
+
+                  {isLoading && (
+                    <div className="mt-3 space-y-1">
+                      <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gold transition-all duration-500"
+                          style={{ width: `${genPct}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Writing your report · {genPct}%
+                      </p>
+                    </div>
+                  )}
+
+                  {unlocked && !isLoading && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void generate(r.id); }}
+                      disabled={isBulkRunning || (r.requiresPartner && !partnerChart)}
+                      className="mt-3 w-full block text-[11px] uppercase tracking-widest text-background bg-gold rounded-md py-2 hover:bg-gold/90 transition disabled:opacity-50"
+                    >
+                      {r.requiresPartner && !partnerChart
+                        ? "Add partner details first"
+                        : isDone
+                          ? "↻ Regenerate report"
+                          : "✦ Generate report"}
+                    </button>
+                  )}
+
                   {isDone && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <button
