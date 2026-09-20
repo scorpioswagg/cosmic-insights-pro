@@ -201,16 +201,18 @@ export function BirthForm({
         </div>
       )}
 
-      <div className="rounded-xl border border-gold/20 bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-1.5">
-        <p className="text-gold uppercase tracking-widest text-[0.7rem]">How to fill this out</p>
-        <p><span className="text-foreground">1. Name —</span> Enter the name you'd like on your chart.</p>
-        <p><span className="text-foreground">2. Birth date —</span> Type the month (1–12), day (1–31), and full 4-digit year exactly as on your birth certificate.</p>
-        <p><span className="text-foreground">3. Birth time —</span> Use the time on your birth certificate. Accuracy matters: even 10 minutes can shift your Ascendant and house cusps. Pick AM or PM.</p>
-        <p><span className="text-foreground">4. Birthplace —</span> Type your city, then click <em>Search</em> and pick the matching location so we can resolve your latitude, longitude, and timezone automatically.</p>
-        <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements, aspects, and to generate personalized reports.</p>
-      </div>
+      {!hideGuide && (
+        <div className="rounded-xl border border-gold/20 bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-1.5">
+          <p className="text-gold uppercase tracking-widest text-[0.7rem]">How to fill this out</p>
+          <p><span className="text-foreground">1. Name —</span> Enter the name you'd like on your chart.</p>
+          <p><span className="text-foreground">2. Birth date —</span> Type the month (1–12), day (1–31), and full 4-digit year exactly as on your birth certificate.</p>
+          <p><span className="text-foreground">3. Birth time —</span> Use the time on your birth certificate. Accuracy matters: even 10 minutes can shift your Ascendant and house cusps. Pick AM or PM.</p>
+          <p><span className="text-foreground">4. Birthplace —</span> Type your city, then click <em>Search</em> and pick the matching location so we can resolve your latitude, longitude, and timezone automatically.</p>
+          <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements, aspects, and to generate personalized reports.</p>
+        </div>
+      )}
 
-      <Field label="Full Name">
+      <Field label={nameLabel}>
         <input value={name} onChange={(e) => setName(e.target.value)}
           className="cosmic-input" placeholder="Your name" />
       </Field>
