@@ -38,9 +38,10 @@ const ChartSchema = z.object({
   utcIso: z.string(),
   ascendant: z.number(),
   midheaven: z.number(),
-  bodies: z.array(BodySchema).max(30),
-  houses: z.array(z.number()).length(12),
-  aspects: z.array(AspectSchema).max(80),
+  bodies: z.array(BodySchema).min(1).max(40),
+  // Accept 12 Placidus cusps; tolerate slight variance from clients.
+  houses: z.array(z.number()).min(12).max(12),
+  aspects: z.array(AspectSchema).max(120),
 });
 
 const InputSchema = z.object({
@@ -49,9 +50,27 @@ const InputSchema = z.object({
   partnerChart: ChartSchema.optional(),
 });
 
+function unwrapInput(input: unknown): unknown {
+  if (input && typeof input === "object" && "data" in input) {
+    return (input as { data: unknown }).data;
+  }
+  return input;
+}
+
 export const generateAstroReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => InputSchema.parse(data))
+  .inputValidator((input: unknown) => {
+    try {
+      return InputSchema.parse(unwrapInput(input));
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        const first = e.issues[0];
+        const path = first?.path?.join(".") || "input";
+        throw new Error(`Invalid chart data (${path}): ${first?.message ?? "validation failed"}`);
+      }
+      throw e;
+    }
+  })
   .handler(async ({ data, context }) => {
     if ((context.claims as { is_anonymous?: boolean })?.is_anonymous) {
       throw new Error("Unauthorized: please sign in with Google to generate reports.");
@@ -59,12 +78,9 @@ export const generateAstroReport = createServerFn({ method: "POST" })
     const def = REPORTS.find((r) => r.id === data.reportId);
     if (!def) throw new Error(`Unknown report: ${data.reportId}`);
 
-    // Entitlement gate — the single server-side source of truth for access.
     const { assertReportAccess } = await import("@/lib/reports/access.server");
     const access = await assertReportAccess(context.userId, data.reportId);
 
-    // Adult (18+) reports require a persisted server-side consent acknowledgment
-    // stored on the user's profile. Client-only confirms are bypassable.
     if (def.adult) {
       const { data: profile, error: profileError } = await context.supabase
         .from("profiles")
@@ -85,18 +101,26 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       );
     }
 
-    const result = await generateReportMarkdown({
-      reportId: data.reportId,
-      chart: data.chart,
-      partnerChart: data.partnerChart,
-    });
+    let result;
+    try {
+      result = await generateReportMarkdown({
+        reportId: data.reportId,
+        chart: data.chart,
+        partnerChart: data.partnerChart,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("LOVABLE_API_KEY") || msg.includes("Missing LOVABLE")) {
+        throw new Error(
+          "Report engine is not configured (missing AI key). Ask the site admin to set LOVABLE_API_KEY.",
+        );
+      }
+      throw new Error(msg || "Report generation failed.");
+    }
 
-    // Best-effort activity log for the admin portal (purchases + free generations).
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const email =
-        (context.claims as { email?: string })?.email ??
-        null;
+      const email = (context.claims as { email?: string })?.email ?? null;
       await supabaseAdmin.from("admin_audit_log").insert({
         actor_id: context.userId,
         actor_email: email,

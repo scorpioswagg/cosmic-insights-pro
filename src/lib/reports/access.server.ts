@@ -68,6 +68,19 @@ export async function resolveReportAccess(
   userId: string,
   reportId: string,
 ): Promise<ReportAccess> {
+  // Admins always have access — check before product lookup so generation
+  // still works if the catalog row is missing or mid-sync.
+  if (await isAdminUser(userId)) {
+    const def = REPORTS.find((r) => r.id === reportId);
+    return {
+      allowed: true,
+      reason: "admin",
+      reportId,
+      title: def?.title ?? reportId,
+      priceCents: 0,
+    };
+  }
+
   const product = await loadProduct(reportId);
   if (!product) return { allowed: false, reason: "unknown_report", reportId };
 
@@ -77,7 +90,6 @@ export async function resolveReportAccess(
     priceCents: product.price_cents,
   };
 
-  if (await isAdminUser(userId)) return { allowed: true, reason: "admin", ...base };
   if (!product.is_published) return { allowed: false, reason: "unpublished", ...base };
   if (product.is_free || product.price_cents <= 0)
     return { allowed: true, reason: "free", ...base };
