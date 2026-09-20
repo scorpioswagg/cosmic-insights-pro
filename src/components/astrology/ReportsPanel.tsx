@@ -73,7 +73,6 @@ export function ReportsPanel({
   } | null>(null);
   const isBulkRunning = bulk !== null;
 
-  // Time-based progress estimate while a report is being written.
   const [genPct, setGenPct] = useState(0);
   useEffect(() => {
     if (!loadingId) {
@@ -84,8 +83,9 @@ export function ReportsPanel({
     setGenPct(3);
     const t = setInterval(() => {
       const secs = (Date.now() - started) / 1000;
-      // Asymptotic approach to 95% over roughly two minutes.
-      setGenPct(Math.min(95, Math.round(95 * (1 - Math.exp(-secs / 55)))));
+      const ratio = 1 - Math.exp(-secs / 55);
+      const next = Math.round(95 * ratio);
+      setGenPct(Math.min(95, next));
     }, 500);
     return () => clearInterval(t);
   }, [loadingId]);
@@ -156,11 +156,25 @@ export function ReportsPanel({
         data: { reportId, chart: chartPayload, partnerChart: partnerPayload },
       });
       setReports((prev) => ({ ...prev, [reportId]: result }));
+      setGenPct(100);
       requestAnimationFrame(() => {
         document.getElementById(`report-${reportId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
+      toast.success(`${def?.title ?? "Report"} ready`);
     } catch (e) {
-      setError((e as Error).message || "Report generation failed.");
+      const msg = (e as Error).message || "Report generation failed.";
+      if (msg.includes("REPORT_LOCKED") || msg.includes("Purchase required")) {
+        setError("This report is locked. Unlock it with Stripe, or sign in as an admin to generate free.");
+      } else if (msg.includes("sign in") || msg.includes("Unauthorized")) {
+        setError("Please sign in with Google to generate reports.");
+      } else if (msg.includes("Invalid chart data")) {
+        setError(msg + " Try recalculating your chart, then generate again.");
+      } else if (msg.includes("LOVABLE") || msg.includes("AI key")) {
+        setError("Report AI is not configured. Set LOVABLE_API_KEY in the project environment.");
+      } else {
+        setError(msg);
+      }
+      toast.error(msg.length > 120 ? msg.slice(0, 120) + "…" : msg);
     } finally {
       setLoadingId(null);
     }
@@ -196,148 +210,14 @@ export function ReportsPanel({
     downloadLuxuryReportPdf(r, chart, partnerChart);
   }
 
-  const intimacyReports = visible.filter((r) => r.adult);
-  const patrioticReports = visible.filter((r) => r.category === "Patriotic Collection");
-
-  async function ensureReport(
-    reportId: string,
-    opts: { throwOnError?: boolean } = {},
-  ): Promise<GeneratedReport | null> {
-    if (reports[reportId]) return reports[reportId];
-    setLoadingId(reportId);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session || sessionData.session.user.is_anonymous) {
-        throw new Error("Please sign in with Google to generate reports.");
-      }
-      const def = REPORTS.find((r) => r.id === reportId);
-      if (def?.requiresPartner && !partnerChart) {
-        throw new Error(
-          "This synastry report needs a second (partner) chart. Use the Partner Chart form above, then try again.",
-        );
-      }
-      const chartPayload = toChartPayload(chart);
-      const partnerPayload = partnerChart ? toChartPayload(partnerChart) : undefined;
-      const result = await runReport({
-        data: { reportId, chart: chartPayload, partnerChart: partnerPayload },
-      });
-      setReports((prev) => ({ ...prev, [reportId]: result }));
-      return result;
-    } catch (e) {
-      if (opts.throwOnError) throw e;
-      setError((e as Error).message || "Report generation failed.");
-      return null;
-    } finally {
-      setLoadingId(null);
-    }
+  function isUnlocked(id: string): boolean {
+    if (isAdmin) return true;
+    if (unlockedIds.has(id)) return true;
+    const p = priceById.get(id);
+    if (!p) return true;
+    if (p.is_free || p.price_cents <= 0) return true;
+    return false;
   }
-
-  async function generateOneAndDownloadPdf(reportId: string) {
-    setError(null);
-    const def = REPORTS.find((r) => r.id === reportId);
-    if (def?.adult && !adultUnlocked) {
-      const ok = typeof window !== "undefined" &&
-        window.confirm("This is an 18+ Intimacy report. Confirm you are 18 or older.");
-      if (!ok) return;
-      try { await runAckAdult({}); } catch (e) {
-        setError((e as Error).message || "Could not record adult consent.");
-        return;
-      }
-      setAdultUnlocked(true);
-    }
-    const report = await ensureReport(reportId);
-    if (report) downloadReportPdf(report);
-  }
-
-  async function generateAndDownloadAllIntimacyPdfs() {
-    setError(null);
-    if (!adultUnlocked) {
-      const ok = typeof window !== "undefined" &&
-        window.confirm(
-          "You are about to generate and download every 18+ Intimacy report as PDFs. Confirm you are 18 or older."
-        );
-      if (!ok) return;
-      try { await runAckAdult({}); } catch (e) {
-        setError((e as Error).message || "Could not record adult consent.");
-        return;
-      }
-      setAdultUnlocked(true);
-    }
-    await bulkGeneratePdfs("Intimacy reports", intimacyReports);
-  }
-
-  async function generateAndDownloadAllPatrioticPdfs() {
-    setError(null);
-    await bulkGeneratePdfs("Patriotic Collection", patrioticReports);
-  }
-
-  async function bulkGeneratePdfs(
-    label: string,
-    defs: typeof REPORTS,
-  ) {
-    if (defs.length === 0) return;
-    if (isBulkRunning) return;
-    setError(null);
-    const failures: { title: string; message: string }[] = [];
-    let completed = 0;
-    setBulk({ label, current: 0, total: defs.length, currentTitle: defs[0].title, failures: [] });
-    const toastId = toast.loading(`Preparing ${label}…`, {
-      description: `0 of ${defs.length} ready`,
-    });
-    try {
-      for (let i = 0; i < defs.length; i++) {
-        const def = defs[i];
-        setBulk((prev) =>
-          prev ? { ...prev, current: i, currentTitle: def.title } : prev,
-        );
-        toast.loading(`Generating ${def.title}`, {
-          id: toastId,
-          description: `${i} of ${defs.length} ready`,
-        });
-        try {
-          const report = await ensureReport(def.id, { throwOnError: true });
-          if (!report) throw new Error("Report generation returned no content.");
-          downloadReportPdf(report);
-          completed += 1;
-          setBulk((prev) =>
-            prev ? { ...prev, current: i + 1 } : prev,
-          );
-        } catch (e) {
-          const message = (e as Error).message || "Unknown error";
-          failures.push({ title: def.title, message });
-          setBulk((prev) =>
-            prev
-              ? { ...prev, current: i + 1, failures: [...prev.failures, { title: def.title, message }] }
-              : prev,
-          );
-        }
-      }
-
-      if (failures.length === 0) {
-        toast.success(`${label} ready`, {
-          id: toastId,
-          description: `Downloaded ${completed} of ${defs.length} PDFs.`,
-        });
-      } else if (completed === 0) {
-        toast.error(`${label} failed`, {
-          id: toastId,
-          description: `None of the ${defs.length} reports could be generated. ${failures[0].message}`,
-        });
-        setError(
-          `Bulk download failed. ${failures.map((f) => `${f.title}: ${f.message}`).join(" · ")}`,
-        );
-      } else {
-        toast.warning(`${label} finished with issues`, {
-          id: toastId,
-          description: `${completed} of ${defs.length} downloaded. ${failures.length} failed — see details below.`,
-        });
-      }
-    } finally {
-      setTimeout(() => setBulk(null), 1500);
-    }
-  }
-
-  const generatedList = REPORTS.filter((r) => reports[r.id]).map((r) => reports[r.id]);
 
   function priceLabel(id: string): string | null {
     if (isAdmin) return "Included";
@@ -345,14 +225,6 @@ export function ReportsPanel({
     if (!p) return null;
     if (p.is_free) return "Free";
     return formatPrice(p.price_cents);
-  }
-
-  function isUnlocked(id: string): boolean {
-    if (isAdmin) return true;
-    const p = priceById.get(id);
-    if (!p) return true;
-    if (p.is_free || p.price_cents <= 0) return true;
-    return unlockedIds.has(id);
   }
 
   function statusLabel(id: string): string {
@@ -386,26 +258,6 @@ export function ReportsPanel({
     }
   }
 
-  async function purchaseBundle(bundleId: string) {
-    setError(null);
-    setPurchasingBundleId(bundleId);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session || sessionData.session.user.is_anonymous) {
-        throw new Error("Please sign in with Google before purchasing.");
-      }
-      const res = await startBundleCheckout({ data: { bundleId } });
-      if (!res.url) throw new Error("Stripe did not return a checkout URL.");
-      window.location.assign(res.url);
-    } catch (e) {
-      const msg = (e as Error).message || "Could not start checkout.";
-      setError(msg);
-      toast.error(msg);
-    } finally {
-      setPurchasingBundleId(null);
-    }
-  }
-
   return (
     <section className="space-y-8">
       <div className="text-center">
@@ -414,6 +266,9 @@ export function ReportsPanel({
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
           Each report is generated from your real Swiss Ephemeris chart data — no templates, no guesswork.
         </p>
+        {isAdmin && (
+          <p className="mt-2 text-xs text-gold">Admin mode — all reports generate free.</p>
+        )}
         {partnerChart ? (
           <p className="mt-3 text-xs text-gold">
             ✦ Partner chart loaded: <span className="font-medium">{partnerChart.input.name}</span> — synastry reports are ready.
@@ -424,10 +279,6 @@ export function ReportsPanel({
           </p>
         )}
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        Reports panel restored. Generate individual reports below. Partner chart is passed for synastry titles.
-      </p>
 
       {error && (
         <div className="glass rounded-xl p-4 border border-destructive/50 text-destructive text-sm">
