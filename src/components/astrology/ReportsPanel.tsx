@@ -641,7 +641,8 @@ export function ReportsPanel({
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {bulk && (
         <div className="glass rounded-xl p-4 border border-gold/30 text-sm">
