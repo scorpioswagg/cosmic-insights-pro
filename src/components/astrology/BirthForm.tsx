@@ -182,7 +182,6 @@ export function BirthForm({
         </div>
       </div>
 
-
       {!isAuthed && (
         <div className="rounded-xl border border-gold/50 bg-gold/10 p-4 space-y-3">
           <p className="text-sm text-foreground">
@@ -208,13 +207,14 @@ export function BirthForm({
           <p><span className="text-foreground">2. Birth date —</span> Type the month (1–12), day (1–31), and full 4-digit year exactly as on your birth certificate.</p>
           <p><span className="text-foreground">3. Birth time —</span> Use the time on your birth certificate. Accuracy matters: even 10 minutes can shift your Ascendant and house cusps. Pick AM or PM.</p>
           <p><span className="text-foreground">4. Birthplace —</span> Type your city, then click <em>Search</em> and pick the matching location so we can resolve your latitude, longitude, and timezone automatically.</p>
-          <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements, aspects, and to generate personalized reports.</p>
+          <p className="pt-1 text-muted-foreground/80">Once your chart appears, scroll down to view placements and aspects, then choose a report to generate.</p>
+          <p className="pt-1 text-muted-foreground/80">Tip: if you are unsure of the birth time, use the checkbox under Birth Time — you can still get full planetary insight.</p>
         </div>
       )}
 
       <Field label={nameLabel}>
         <input value={name} onChange={(e) => setName(e.target.value)}
-          className="cosmic-input" placeholder="Your name" />
+          className="cosmic-input" placeholder="e.g. Alex Rivera" />
       </Field>
 
       <Field label="Birth Date (Month / Day / Year)">
@@ -243,25 +243,24 @@ export function BirthForm({
             <option value="PM">PM</option>
           </select>
         </div>
-        <button
-          type="button"
-          onClick={() => setTimeUnknown((v) => !v)}
-          aria-pressed={timeUnknown}
-          className={`mt-2 w-full py-2 rounded-lg text-xs uppercase tracking-widest border transition ${
-            timeUnknown
-              ? "border-gold bg-gold/15 text-gold"
-              : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
-          }`}
-        >
-          {timeUnknown ? "✓ Birth time unknown — using solar chart" : "I don't know my birth time"}
-        </button>
+        <label className="mt-3 flex items-start gap-3 cursor-pointer select-none rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 hover:border-gold/40 transition">
+          <input
+            type="checkbox"
+            checked={timeUnknown}
+            onChange={(e) => setTimeUnknown(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gold/50 accent-[var(--gold)]"
+          />
+          <span className="text-sm leading-relaxed">
+            <span className="font-medium text-foreground">I don't know my exact birth time</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Check this if the time is unknown. We still calculate planets, signs, and aspects exactly,
+              and use a solar-sign house frame so reports stay useful without guessing an Ascendant.
+            </span>
+          </span>
+        </label>
         {timeUnknown && (
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Your full report library stays available. We calculate every planet, sign, degree,
-            aspect and retrograde exactly, and use the professional solar-sign house frame
-            (your Sun's exact degree begins the 1st house) instead of a guessed Ascendant.
-            Time-dependent factors — Ascendant, Midheaven, Moon degree precision and house
-            cusps — are flagged as uncertain inside each report rather than invented.
+          <p className="mt-2 text-xs leading-relaxed text-gold/90">
+            Solar chart mode is on. Ascendant, Midheaven, and house cusps will be marked as approximate in your reports.
           </p>
         )}
       </Field>
