@@ -2,12 +2,13 @@
 # Header rules, Redirect rules, and deploy-preview for cosmicblueprint2026
 
 [build]
-  command = "npm run build"
+  command = "npm install --legacy-peer-deps && npm run build"
   publish = "dist/client"
 
 [build.environment]
   NODE_VERSION = "22"
   NITRO_PRESET = "netlify"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # SPA fallback for TanStack Router client routes
 [[redirects]]
