@@ -134,6 +134,21 @@ export const getMyReports = createServerFn({ method: "GET" })
     const { isAdminUser } = await import("./access.server");
     const admin = await isAdminUser(context.userId);
 
+    // Administrators: the whole catalog is included, forever and for new reports.
+    if (admin) {
+      const { REPORTS } = await import("@/lib/astrology/reports-catalog");
+      const items = REPORTS.map((r) => ({
+        reportId: r.id,
+        source: "admin",
+        grantedAt: null as string | null,
+        title: r.title,
+        tagline: r.tagline,
+        category: r.category,
+        icon: r.icon,
+      }));
+      return { isAdmin: true, items, purchases: [] };
+    }
+
     const { data: ents } = await supabaseAdmin
       .from("report_entitlements")
       .select("report_id, source, granted_at, status")
