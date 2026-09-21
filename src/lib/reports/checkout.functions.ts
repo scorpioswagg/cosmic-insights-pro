@@ -2,6 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+function claimEmail(context: { claims?: unknown }): string | null {
+  const email = (context.claims as { email?: unknown } | undefined)?.email;
+  return typeof email === "string" ? email : null;
+}
+
 /** Creates a Stripe Checkout Session for one report. Price is resolved server-side. */
 export const createReportCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -16,7 +21,8 @@ export const createReportCheckout = createServerFn({ method: "POST" })
     const { getStripe, ensureStripePrice } = await import("./stripe.server");
     const { resolveReportAccess } = await import("./access.server");
 
-    const access = await resolveReportAccess(context.userId, data.reportId);
+    const email = claimEmail(context);
+    const access = await resolveReportAccess(context.userId, data.reportId, email);
     if (access.allowed) return { alreadyOwned: true as const, url: null };
     if (access.reason === "unknown_report") throw new Error("Unknown report.");
     if (access.reason === "unpublished") throw new Error("This report is not available.");
@@ -41,15 +47,10 @@ export const createReportCheckout = createServerFn({ method: "POST" })
       process.env.SITE_URL ??
       "https://yourcosmicblueprint.lovable.app";
 
-    const email =
-      typeof (context.claims as { email?: unknown }).email === "string"
-        ? ((context.claims as { email?: string }).email as string)
-        : undefined;
-
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: email,
+      customer_email: email ?? undefined,
       client_reference_id: context.userId,
       metadata: {
         user_id: context.userId,
@@ -82,7 +83,7 @@ export const getMyAccess = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { isAdminUser } = await import("./access.server");
-    const admin = await isAdminUser(context.userId);
+    const admin = await isAdminUser(context.userId, claimEmail(context));
 
     // Admins own the entire catalog — current reports and anything added later.
     if (admin) {
@@ -109,7 +110,6 @@ export const getMyAccess = createServerFn({ method: "GET" })
     return { isAdmin: admin, unlocked };
   });
 
-
 /** Polled by the success page until the verified webhook has landed. */
 export const getEntitlementStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -118,7 +118,11 @@ export const getEntitlementStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { resolveReportAccess } = await import("./access.server");
-    const access = await resolveReportAccess(context.userId, data.reportId);
+    const access = await resolveReportAccess(
+      context.userId,
+      data.reportId,
+      claimEmail(context),
+    );
     return {
       unlocked: access.allowed,
       reason: access.reason,
@@ -132,7 +136,7 @@ export const getMyReports = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { isAdminUser } = await import("./access.server");
-    const admin = await isAdminUser(context.userId);
+    const admin = await isAdminUser(context.userId, claimEmail(context));
 
     // Administrators: the whole catalog is included, forever and for new reports.
     if (admin) {

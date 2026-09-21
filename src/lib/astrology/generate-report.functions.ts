@@ -78,8 +78,13 @@ export const generateAstroReport = createServerFn({ method: "POST" })
     const def = REPORTS.find((r) => r.id === data.reportId);
     if (!def) throw new Error(`Unknown report: ${data.reportId}`);
 
+    const email =
+      typeof (context.claims as { email?: unknown }).email === "string"
+        ? ((context.claims as { email?: string }).email as string)
+        : null;
+
     const { assertReportAccess } = await import("@/lib/reports/access.server");
-    const access = await assertReportAccess(context.userId, data.reportId);
+    const access = await assertReportAccess(context.userId, data.reportId, email);
 
     if (def.adult) {
       const { data: profile, error: profileError } = await context.supabase
@@ -120,7 +125,6 @@ export const generateAstroReport = createServerFn({ method: "POST" })
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const email = (context.claims as { email?: string })?.email ?? null;
       await supabaseAdmin.from("admin_audit_log").insert({
         actor_id: context.userId,
         actor_email: email,

@@ -2,9 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function requireAdmin(userId: string) {
+async function requireAdmin(userId: string, email?: string | null) {
   const { isAdminUser } = await import("@/lib/reports/access.server");
-  if (!(await isAdminUser(userId))) throw new Error("Forbidden");
+  if (!(await isAdminUser(userId, email))) throw new Error("Forbidden");
+}
+
+function claimEmail(context: { claims?: unknown }): string | null {
+  const email = (context.claims as { email?: unknown } | undefined)?.email;
+  return typeof email === "string" ? email : null;
 }
 
 async function audit(entry: {
@@ -38,7 +43,7 @@ export interface AdminAccount {
 export const listAdministrators = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireAdmin(context.userId);
+    await requireAdmin(context.userId, claimEmail(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: roles, error } = await supabaseAdmin
@@ -84,7 +89,7 @@ export const addAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => EmailSchema.parse(i))
   .handler(async ({ data, context }) => {
-    await requireAdmin(context.userId);
+    await requireAdmin(context.userId, claimEmail(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
 
@@ -115,7 +120,7 @@ export const removeAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => EmailSchema.parse(i))
   .handler(async ({ data, context }) => {
-    await requireAdmin(context.userId);
+    await requireAdmin(context.userId, claimEmail(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
 
@@ -142,7 +147,7 @@ export const removeAdministrator = createServerFn({ method: "POST" })
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireAdmin(context.userId);
+    await requireAdmin(context.userId, claimEmail(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("admin_audit_log")

@@ -41,9 +41,14 @@ export const listPublishedReports = createServerFn({ method: "GET" }).handler(as
   return (data ?? []) as ReportProduct[];
 });
 
-async function assertAdmin(context: { userId: string }) {
+function claimEmail(context: { claims?: unknown }): string | null {
+  const email = (context.claims as { email?: unknown } | undefined)?.email;
+  return typeof email === "string" ? email : null;
+}
+
+async function assertAdmin(context: { userId: string; claims?: unknown }) {
   const { isAdminUser } = await import("@/lib/reports/access.server");
-  if (!(await isAdminUser(context.userId))) throw new Error("Forbidden");
+  if (!(await isAdminUser(context.userId, claimEmail(context)))) throw new Error("Forbidden");
 }
 
 /** Whether the signed-in caller is an admin (admins get every report free). */
@@ -51,7 +56,7 @@ export const getIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { isAdminUser } = await import("@/lib/reports/access.server");
-    return { isAdmin: await isAdminUser(context.userId) };
+    return { isAdmin: await isAdminUser(context.userId, claimEmail(context)) };
   });
 
 /** Full catalog including unpublished rows. Admin only. */
