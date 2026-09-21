@@ -47,13 +47,13 @@ export function ReportsPanel({
     queryFn: () => fetchIsAdmin(),
     retry: false,
   });
-  const isAdmin = !!adminInfo?.isAdmin || !!accessInfo?.isAdmin;
 
   const { data: accessInfo } = useQuery({
     queryKey: ["my-report-access"],
     queryFn: () => fetchAccess(),
     retry: false,
   });
+  const isAdmin = !!adminInfo?.isAdmin || !!accessInfo?.isAdmin;
   const unlockedIds = new Set(accessInfo?.unlocked ?? []);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [purchasingBundleId, setPurchasingBundleId] = useState<string | null>(null);
