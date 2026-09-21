@@ -220,6 +220,37 @@ export function computeSynastry(a: SerialChart, b: SerialChart): SynastryResult 
   return { aspects, aToB, bToA, scores };
 }
 
+export interface SynastryPair {
+  aIndex: number;
+  bIndex: number;
+  aName: string;
+  bName: string;
+  result: SynastryResult;
+}
+
+export interface MultiSynastryResult {
+  participants: string[];
+  pairs: SynastryPair[];
+}
+
+/** Every unique pair among 2–5 charts, each scored with the two-chart engine. */
+export function computeMultiSynastry(charts: SerialChart[]): MultiSynastryResult {
+  const participants = charts.map((c, i) => c.input.name || `Person ${i + 1}`);
+  const pairs: SynastryPair[] = [];
+  for (let i = 0; i < charts.length; i++) {
+    for (let j = i + 1; j < charts.length; j++) {
+      pairs.push({
+        aIndex: i,
+        bIndex: j,
+        aName: participants[i],
+        bName: participants[j],
+        result: computeSynastry(charts[i], charts[j]),
+      });
+    }
+  }
+  return { participants, pairs };
+}
+
 const DOMAIN_LABELS: Record<SynastryDomain, string> = {
   attraction: "Attraction",
   emotionalCompatibility: "Emotional compatibility",
