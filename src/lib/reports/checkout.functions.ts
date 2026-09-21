@@ -84,6 +84,17 @@ export const getMyAccess = createServerFn({ method: "GET" })
     const { isAdminUser } = await import("./access.server");
     const admin = await isAdminUser(context.userId);
 
+    // Admins own the entire catalog — current reports and anything added later.
+    if (admin) {
+      const { REPORTS } = await import("@/lib/astrology/reports-catalog");
+      const { data: rows } = await supabaseAdmin.from("report_products").select("id");
+      const all = new Set<string>([
+        ...REPORTS.map((r) => r.id),
+        ...(rows ?? []).map((r) => r.id),
+      ]);
+      return { isAdmin: true, unlocked: Array.from(all) };
+    }
+
     const { data: ents } = await supabaseAdmin
       .from("report_entitlements")
       .select("report_id, status, expires_at, source, granted_at")
@@ -97,6 +108,7 @@ export const getMyAccess = createServerFn({ method: "GET" })
 
     return { isAdmin: admin, unlocked };
   });
+
 
 /** Polled by the success page until the verified webhook has landed. */
 export const getEntitlementStatus = createServerFn({ method: "POST" })
@@ -121,6 +133,21 @@ export const getMyReports = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { isAdminUser } = await import("./access.server");
     const admin = await isAdminUser(context.userId);
+
+    // Administrators: the whole catalog is included, forever and for new reports.
+    if (admin) {
+      const { REPORTS } = await import("@/lib/astrology/reports-catalog");
+      const items = REPORTS.map((r) => ({
+        reportId: r.id,
+        source: "admin",
+        grantedAt: null as string | null,
+        title: r.title,
+        tagline: r.tagline,
+        category: r.category,
+        icon: r.icon,
+      }));
+      return { isAdmin: true, items, purchases: [] };
+    }
 
     const { data: ents } = await supabaseAdmin
       .from("report_entitlements")
