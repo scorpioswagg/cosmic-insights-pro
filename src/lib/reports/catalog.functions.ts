@@ -106,7 +106,16 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
 
     let updated = 0;
     for (const r of REPORTS) {
-      const patch: Record<string, unknown> = {
+      const patch: {
+        title: string;
+        tagline: string;
+        category: string;
+        icon: string;
+        adult: boolean;
+        price_cents?: number;
+        is_free?: boolean;
+        is_published?: boolean;
+      } = {
         title: r.title,
         tagline: r.tagline,
         category: r.category,
@@ -126,7 +135,13 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
       updated += 1;
     }
 
-    return { inserted: inserts.length, updated, total: REPORTS.length };
+    return {
+      inserted: inserts.length,
+      added: inserts.length,
+      updated,
+      unfiltered: REPORTS.filter((r) => r.category === "Unfiltered Series").length,
+      total: REPORTS.length,
+    };
   });
 
 /** Export catalog rows as a Stripe-ready CSV (admin). */

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SynastryRouteImport } from './routes/synastry'
 import { Route as MyReportsRouteImport } from './routes/my-reports'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as AcademyRouteImport } from './routes/academy'
@@ -27,6 +28,11 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 
+const SynastryRoute = SynastryRouteImport.update({
+  id: '/synastry',
+  path: '/synastry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MyReportsRoute = MyReportsRouteImport.update({
   id: '/my-reports',
   path: '/my-reports',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/academy': typeof AcademyRoute
   '/mcp': typeof McpRoute
   '/my-reports': typeof MyReportsRoute
+  '/synastry': typeof SynastryRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/academy': typeof AcademyRoute
   '/mcp': typeof McpRoute
   '/my-reports': typeof MyReportsRoute
+  '/synastry': typeof SynastryRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/academy': typeof AcademyRoute
   '/mcp': typeof McpRoute
   '/my-reports': typeof MyReportsRoute
+  '/synastry': typeof SynastryRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/mcp'
     | '/my-reports'
+    | '/synastry'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/administrators'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/mcp'
     | '/my-reports'
+    | '/synastry'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/administrators'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/mcp'
     | '/my-reports'
+    | '/synastry'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/administrators'
@@ -239,6 +251,7 @@ export interface RootRouteChildren {
   AcademyRoute: typeof AcademyRoute
   McpRoute: typeof McpRoute
   MyReportsRoute: typeof MyReportsRoute
+  SynastryRoute: typeof SynastryRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminAdministratorsRoute: typeof AdminAdministratorsRoute
@@ -256,6 +269,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/synastry': {
+      id: '/synastry'
+      path: '/synastry'
+      fullPath: '/synastry'
+      preLoaderRoute: typeof SynastryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/my-reports': {
       id: '/my-reports'
       path: '/my-reports'
@@ -383,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcademyRoute: AcademyRoute,
   McpRoute: McpRoute,
   MyReportsRoute: MyReportsRoute,
+  SynastryRoute: SynastryRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
