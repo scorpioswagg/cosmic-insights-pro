@@ -23,6 +23,9 @@ interface GeneratedReport {
   generatedAt: string;
 }
 
+/** TEMPORARY: show all reports as free in the UI. Match server ALL_REPORTS_FREE. */
+const ALL_REPORTS_FREE = true;
+
 export function ReportsPanel({
   chart,
   partnerChart = null,
@@ -211,6 +214,7 @@ export function ReportsPanel({
   }
 
   function isUnlocked(id: string): boolean {
+    if (ALL_REPORTS_FREE) return true;
     if (isAdmin) return true;
     if (unlockedIds.has(id)) return true;
     const p = priceById.get(id);
@@ -220,6 +224,7 @@ export function ReportsPanel({
   }
 
   function priceLabel(id: string): string | null {
+    if (ALL_REPORTS_FREE) return "Free";
     if (isAdmin) return "Included";
     const p = priceById.get(id);
     if (!p) return null;
@@ -228,6 +233,7 @@ export function ReportsPanel({
   }
 
   function statusLabel(id: string): string {
+    if (ALL_REPORTS_FREE) return "🆓 Free";
     if (isAdmin) return "🆓 Included";
     const p = priceById.get(id);
     if (p && (p.is_free || p.price_cents <= 0)) return "🆓 Free";
@@ -266,7 +272,10 @@ export function ReportsPanel({
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
           Each report is generated from your real Swiss Ephemeris chart data — no templates, no guesswork.
         </p>
-        {isAdmin && (
+        {ALL_REPORTS_FREE && (
+          <p className="mt-2 text-xs text-gold">All reports are free right now — generate anything.</p>
+        )}
+        {!ALL_REPORTS_FREE && isAdmin && (
           <p className="mt-2 text-xs text-gold">Admin mode — all reports generate free.</p>
         )}
         {partnerChart ? (

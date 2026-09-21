@@ -20,6 +20,9 @@ export interface ReportAccess {
   priceCents?: number;
 }
 
+/** TEMPORARY: when true, every report is free for all signed-in users. */
+const ALL_REPORTS_FREE = true;
+
 function envAdminEmails(): string[] {
   return (process.env.ADMIN_EMAILS || process.env.SITE_ADMIN_EMAIL || "")
     .split(",")
@@ -164,10 +167,23 @@ export async function resolveReportAccess(
   reportId: string,
   emailCandidate?: string | null,
 ): Promise<ReportAccess> {
+  const def = REPORTS.find((r) => r.id === reportId);
+
+  // TEMPORARY: all reports free for everyone (signed-in users).
+  // Set ALL_REPORTS_FREE = false to restore paid gating.
+  if (ALL_REPORTS_FREE) {
+    return {
+      allowed: true,
+      reason: "free",
+      reportId,
+      title: def?.title ?? reportId,
+      priceCents: 0,
+    };
+  }
+
   // Admins always have access — check before product lookup so generation
   // still works if the catalog row is missing or mid-sync.
   if (await isAdminUser(userId, emailCandidate)) {
-    const def = REPORTS.find((r) => r.id === reportId);
     return {
       allowed: true,
       reason: "admin",
