@@ -2,9 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function requireAdmin(userId: string) {
+async function requireAdmin(userId: string, email?: string | null) {
   const { isAdminUser } = await import("@/lib/reports/access.server");
-  if (!(await isAdminUser(userId))) throw new Error("Forbidden");
+  if (!(await isAdminUser(userId, email))) throw new Error("Forbidden");
+}
+
+function claimEmail(context: { claims?: unknown }): string | null {
+  const email = (context.claims as { email?: unknown } | undefined)?.email;
+  return typeof email === "string" ? email : null;
 }
 
 /** Resolve auth user display fields for a set of user ids. */
@@ -43,7 +48,7 @@ async function resolveUsers(
 export const listPurchases = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireAdmin(context.userId);
+    await requireAdmin(context.userId, claimEmail(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: purchases, error } = await supabaseAdmin
