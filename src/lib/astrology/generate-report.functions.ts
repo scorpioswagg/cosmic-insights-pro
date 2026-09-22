@@ -115,6 +115,18 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      const statusCode =
+        e && typeof e === "object" && "statusCode" in e
+          ? Number((e as { statusCode?: unknown }).statusCode)
+          : undefined;
+      if (statusCode === 402 || /payment required/i.test(msg)) {
+        console.error(
+          `[generateAstroReport] AI Gateway balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
+        );
+        throw new Error(
+          "Report writing is temporarily unavailable because the site's AI usage balance is exhausted. Your admin report access is active; no report purchase is required.",
+        );
+      }
       if (msg.includes("LOVABLE_API_KEY") || msg.includes("Missing LOVABLE")) {
         throw new Error(
           "Report engine is not configured (missing AI key). Ask the site admin to set LOVABLE_API_KEY.",
