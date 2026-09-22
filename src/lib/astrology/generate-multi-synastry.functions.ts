@@ -18,6 +18,11 @@ const Input=z.object({reportId:z.string().min(1).max(64),charts:z.array(Chart).m
 
 function serial(c:z.infer<typeof Chart>):SerialChart{return {...c,aspects:c.aspects.map(a=>({a:a.a,b:a.b,type:a.type,orb:a.orb,applying:a.applying}))};}
 
+function claimEmail(context: { claims?: unknown }): string | null {
+  const email = (context.claims as { email?: unknown } | undefined)?.email;
+  return typeof email === "string" ? email : null;
+}
+
 export const generateMultiSynastryReport=createServerFn({method:"POST"})
  .middleware([requireSupabaseAuth])
  .inputValidator((input:unknown)=>Input.parse(input&&typeof input==="object"&&"data" in input?(input as {data:unknown}).data:input))
@@ -28,7 +33,7 @@ export const generateMultiSynastryReport=createServerFn({method:"POST"})
    if(!def.requiresPartner) throw new Error("This report is not a multi-chart synastry report.");
    if(data.charts.length<2||data.charts.length>5) throw new Error("Multi-chart synastry requires 2–5 charts.");
    const {assertReportAccess}=await import("@/lib/reports/access.server");
-   await assertReportAccess(context.userId,data.reportId);
+    await assertReportAccess(context.userId,data.reportId,claimEmail(context));
    if(def.adult){
      const {data:p,error}=await context.supabase.from("profiles").select("adult_consent").eq("id",context.userId).maybeSingle();
      if(error) throw new Error(error.message);
