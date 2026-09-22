@@ -23,11 +23,15 @@ export interface ReportAccess {
 /** TEMPORARY: when true, every report is free for all signed-in users. */
 const ALL_REPORTS_FREE = true;
 
+/** Hardcoded founder / operator emails that always receive admin. */
+const HARDCODED_ADMINS = ["swaggersofyne@gmail.com", "oracle@mycosmicblueprint.online"];
+
 function envAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS || process.env.SITE_ADMIN_EMAIL || "")
+  const fromEnv = (process.env.ADMIN_EMAILS || process.env.SITE_ADMIN_EMAIL || "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+  return Array.from(new Set([...HARDCODED_ADMINS, ...fromEnv]));
 }
 
 /**
@@ -44,7 +48,7 @@ export async function isAdminUser(
   const envAdmins = envAdminEmails();
   const claimEmail = emailCandidate?.toLowerCase()?.trim() || null;
 
-  // 0) Fast path: JWT / claim email is on the env allowlist.
+  // 0) Fast path: JWT / claim email is on the allowlist (env + hardcoded).
   if (claimEmail && envAdmins.includes(claimEmail)) {
     if (userId) {
       try {
@@ -137,7 +141,7 @@ async function loadProduct(reportId: string) {
   if (data) return data;
 
   // Self-heal: a report defined in code but not yet in the catalog table gets
-  // seeded with its default price so pricing is never silently zero.
+  // seeded so generate always has a product ID.
   const def = REPORTS.find((r) => r.id === reportId);
   if (!def) return null;
   const row = {
@@ -147,8 +151,8 @@ async function loadProduct(reportId: string) {
     category: def.category,
     icon: def.icon,
     adult: !!def.adult,
-    price_cents: defaultPriceCents(def),
-    is_free: false,
+    price_cents: 0,
+    is_free: true,
     is_published: true,
     slug: def.id,
   };

@@ -30,15 +30,96 @@ function publicClient() {
   );
 }
 
-/** Published catalog — safe for anonymous visitors. */
+/** Build a published product row from the code catalog definition. */
+function productFromDef(
+  r: (typeof REPORTS)[number],
+  index: number,
+): ReportProduct {
+  return {
+    id: r.id,
+    title: r.title,
+    tagline: r.tagline,
+    category: r.category,
+    icon: r.icon,
+    adult: !!r.adult,
+    price_cents: 0, // temporarily free for everyone
+    is_free: true,
+    is_published: true,
+    sort_order: index,
+  };
+}
+
+/**
+ * Ensure every report in the code catalog exists in report_products.
+ * Missing rows are upserted via service role so generate buttons always
+ * have real product IDs (including all 18 Unfiltered Series).
+ */
+async function ensureCatalogSeeded(): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await supabaseAdmin.from("report_products").select("id");
+    const known = new Set((existing ?? []).map((r) => r.id));
+    const missing = REPORTS.filter((r) => !known.has(r.id));
+    if (missing.length === 0) return;
+
+    const rows = missing.map((r, i) => ({
+      id: r.id,
+      title: r.title,
+      tagline: r.tagline,
+      category: r.category,
+      icon: r.icon,
+      adult: !!r.adult,
+      price_cents: 0,
+      is_free: true,
+      is_published: true,
+      sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
+      slug: r.id,
+    }));
+    const { error } = await supabaseAdmin.from("report_products").upsert(rows, {
+      onConflict: "id",
+    });
+    if (error) console.error("[ensureCatalogSeeded]", error.message);
+    else console.log(`[ensureCatalogSeeded] inserted/updated ${rows.length} products`);
+  } catch (err) {
+    console.error("[ensureCatalogSeeded] failed", err);
+  }
+}
+
+/** Published catalog — always includes the full code catalog. */
 export const listPublishedReports = createServerFn({ method: "GET" }).handler(async () => {
+  // Best-effort seed so Unfiltered Series + synastry products exist in DB.
+  await ensureCatalogSeeded();
+
   const { data, error } = await publicClient()
     .from("report_products")
     .select(SELECT_COLS)
     .eq("is_published", true)
     .order("sort_order", { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as ReportProduct[];
+
+  if (error) {
+    console.error("[listPublishedReports]", error.message);
+    // Fall back entirely to code catalog so the UI never goes empty.
+    return REPORTS.map((r, i) => productFromDef(r, i));
+  }
+
+  const byId = new Map((data ?? []).map((p) => [p.id, p as ReportProduct]));
+
+  // Merge: every code-catalog report appears, preferring DB metadata when present.
+  const merged: ReportProduct[] = REPORTS.map((r, i) => {
+    const db = byId.get(r.id);
+    if (db) {
+      return {
+        ...db,
+        // Force free while ALL_REPORTS_FREE is on
+        is_free: true,
+        price_cents: 0,
+        is_published: true,
+      };
+    }
+    return productFromDef(r, i);
+  });
+
+  return merged;
 });
 
 function claimEmail(context: { claims?: unknown }): string | null {
@@ -64,6 +145,7 @@ export const listAllReports = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context as never);
+    await ensureCatalogSeeded();
     const { data, error } = await context.supabase
       .from("report_products")
       .select(SELECT_COLS)
@@ -75,9 +157,9 @@ export const listAllReports = createServerFn({ method: "GET" })
 
 /**
  * Upserts every report in the code catalog into the database.
- * - New rows: default price, published.
+ * - New rows: free + published (temporary free period).
  * - Existing rows: refresh presentation fields.
- * - Unfiltered Series rows: force $99 and published so the 18/20 ship together.
+ * - Unfiltered Series rows: published.
  */
 export const syncReportCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -97,8 +179,8 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
       category: r.category,
       icon: r.icon,
       adult: !!r.adult,
-      price_cents: defaultPriceCents(r),
-      is_free: false,
+      price_cents: 0,
+      is_free: true,
       is_published: true,
       sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
       slug: r.id,
@@ -126,12 +208,10 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
         category: r.category,
         icon: r.icon,
         adult: !!r.adult,
+        price_cents: 0,
+        is_free: true,
+        is_published: true,
       };
-      if (r.category === "Unfiltered Series") {
-        patch.price_cents = 9900;
-        patch.is_free = false;
-        patch.is_published = true;
-      }
       const { error } = await context.supabase
         .from("report_products")
         .update(patch)
