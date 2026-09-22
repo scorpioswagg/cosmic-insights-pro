@@ -70,7 +70,18 @@ Prior chapter excerpt (continuity only; do not repeat):
 ${rolling.slice(-2500)}
 
 Rules: only this chapter; begin with one italic Chart Anchors line; every paragraph cites supplied evidence; do not invent data. If this is chapter 30, provide exactly five numbered Brutal Truths. If chapter 31, end with the required mirror sentence.`;
-     const result=await generateText({model,system,prompt});
+     let result;
+     try {
+       result=await generateText({model,system,prompt});
+     } catch (error) {
+       const message=error instanceof Error?error.message:String(error);
+       const statusCode=error&&typeof error==="object"&&"statusCode" in error?Number((error as {statusCode?:unknown}).statusCode):undefined;
+       if(statusCode===402||/payment required/i.test(message)){
+         console.error(`[generateMultiSynastryReport] AI Gateway balance unavailable for userId=${context.userId}, reportId=${data.reportId}`);
+         throw new Error("Report writing is temporarily unavailable because the site's AI usage balance is exhausted. Your admin report access is active; no report purchase is required.");
+       }
+       throw error;
+     }
      const piece=result.text.trim();
      chapters.push(piece); rolling=(rolling+"\n\n"+piece).slice(-6000);
    }
