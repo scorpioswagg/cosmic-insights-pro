@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { resolveWritingModel } from "@/lib/ai-gateway.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const InputSchema = z.object({
@@ -19,9 +19,8 @@ export const askAcademy = createServerFn({ method: "POST" })
     if ((context.claims as { is_anonymous?: boolean })?.is_anonymous) {
       throw new Error("Unauthorized: please sign in with Google to use the tutor.");
     }
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
+
+    const model = resolveWritingModel();
 
     const system = `You are the Cosmic Blueprint Academy assistant — a warm, plainspoken astrology tutor for absolute beginners.
 
@@ -41,7 +40,7 @@ RULES:
       : `USER: ${data.question}\n\nASSISTANT:`;
 
     const { text } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+      model,
       system,
       prompt,
     });

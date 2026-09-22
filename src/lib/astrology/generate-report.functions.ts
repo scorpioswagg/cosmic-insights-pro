@@ -121,15 +121,19 @@ export const generateAstroReport = createServerFn({ method: "POST" })
           : undefined;
       if (statusCode === 402 || /payment required/i.test(msg)) {
         console.error(
-          `[generateAstroReport] AI Gateway balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
+          `[generateAstroReport] AI balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
         );
         throw new Error(
-          "Report writing is temporarily unavailable because the site's AI usage balance is exhausted. Your admin report access is active; no report purchase is required.",
+          "Report writing is temporarily unavailable because the AI provider balance is exhausted. Set GEMINI_API_KEY in project secrets to bill Google directly (bypasses Lovable credits), or top up Lovable.",
         );
       }
-      if (msg.includes("LOVABLE_API_KEY") || msg.includes("Missing LOVABLE")) {
+      if (
+        msg.includes("LOVABLE_API_KEY") ||
+        msg.includes("GEMINI_API_KEY") ||
+        msg.includes("not configured")
+      ) {
         throw new Error(
-          "Report engine is not configured (missing AI key). Ask the site admin to set LOVABLE_API_KEY.",
+          "Report engine is not configured. Add GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets.",
         );
       }
       throw new Error(msg || "Report generation failed.");

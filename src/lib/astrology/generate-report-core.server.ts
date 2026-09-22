@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { resolveWritingModel, whichWritingProvider } from "@/lib/ai-gateway.server";
 import { REPORTS } from "./reports-catalog";
 import { computeSynastry, synastryToPrompt, type SerialChart } from "./synastry";
 import { generateChapterEvidenceReport } from "./chapter-evidence.server";
@@ -88,8 +88,12 @@ export async function generateReportMarkdown(input: {
   chart: ReportChartInput;
   partnerChart?: ReportChartInput;
 }): Promise<GeneratedReportPayload> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
+  const provider = whichWritingProvider();
+  if (!provider) {
+    throw new Error(
+      "Report engine is not configured: set GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets.",
+    );
+  }
 
   const def = REPORTS.find((r) => r.id === input.reportId);
   if (!def) throw new Error(`Unknown report: ${input.reportId}`);
@@ -100,7 +104,7 @@ export async function generateReportMarkdown(input: {
     );
   }
 
-  const gateway = createLovableAiGatewayProvider(key);
+  const model = resolveWritingModel();
 
   let chartBlock = chartToPrompt(input.chart, def.requiresPartner ? "PERSON A — " : "");
   let synastryBlock = "";
@@ -146,8 +150,6 @@ export async function generateReportMarkdown(input: {
     ? `\nUNKNOWN BIRTH TIME PROTOCOL (STRICT):\n- Open the report with a short italic note: birth time unknown, solar-sign house frame in use.\n- NEVER name a rising sign, Ascendant degree, Midheaven sign, Vertex, Part of Fortune, or a Placidus cusp as fact.\n- Interpret houses as SOLAR houses (\"your solar 7th house\") and say so.\n- If the Moon is within 6° of a sign boundary, state both possible signs and interpret the tension.\n- Deliver the full required length and depth; never shorten or hedge the whole report — only the time-dependent factors are qualified.\n`
     : ""
 }\n\nREPORT FRAMING:\n${def.systemFraming}`;
-
-  const model = gateway("google/gemini-3-flash-preview");
 
   const reportDef = def;
   function buildPrompt(sections: string[], opts: { partOf?: [number, number]; previous?: string }) {
