@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -10,6 +10,10 @@ import {
   updateReportProduct,
   type ReportProduct,
 } from "@/lib/reports/catalog.functions";
+import {
+  getWritingProviderStatus,
+  listRecentReportGenerations,
+} from "@/lib/admin/ai-status.functions";
 import { formatPrice } from "@/lib/reports/pricing";
 import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -29,7 +33,14 @@ export const Route = createFileRoute("/admin/reports")({
             ? "You need admin access to view this page."
             : `Error: ${msg}`}
         </p>
-        <Button onClick={() => { reset(); router.invalidate(); }}>Retry</Button>
+        <Button
+          onClick={() => {
+            reset();
+            router.invalidate();
+          }}
+        >
+          Retry
+        </Button>
       </div>
     );
   },
@@ -42,12 +53,24 @@ function AdminReportsPage() {
   const runExportCsv = useServerFn(exportStripeCatalogCsv);
   const runUpdate = useServerFn(updateReportProduct);
   const runStripeSync = useServerFn(syncStripePrices);
+  const fetchAi = useServerFn(getWritingProviderStatus);
+  const fetchGens = useServerFn(listRecentReportGenerations);
   const qc = useQueryClient();
   const [filter, setFilter] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-report-products"],
     queryFn: () => fetchAll(),
+  });
+
+  const { data: aiStatus } = useQuery({
+    queryKey: ["admin-ai-status"],
+    queryFn: () => fetchAi(),
+  });
+
+  const { data: generations } = useQuery({
+    queryKey: ["admin-report-generations"],
+    queryFn: () => fetchGens(),
   });
 
   const sync = useMutation({
@@ -79,8 +102,12 @@ function AdminReportsPage() {
   });
 
   const update = useMutation({
-    mutationFn: (vars: { id: string; price_cents?: number; is_free?: boolean; is_published?: boolean }) =>
-      runUpdate({ data: vars }),
+    mutationFn: (vars: {
+      id: string;
+      price_cents?: number;
+      is_free?: boolean;
+      is_published?: boolean;
+    }) => runUpdate({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-report-products"] }),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -99,11 +126,22 @@ function AdminReportsPage() {
     (r) =>
       !filter ||
       r.title.toLowerCase().includes(filter.toLowerCase()) ||
-      r.category.toLowerCase().includes(filter.toLowerCase()),
+      r.category.toLowerCase().includes(filter.toLowerCase()) ||
+      r.id.toLowerCase().includes(filter.toLowerCase()),
   );
 
   const published = (data ?? []).filter((r) => r.is_published).length;
   const free = (data ?? []).filter((r) => r.is_free).length;
+  const unfiltered = (data ?? []).filter((r) => r.category === "Unfiltered Series").length;
+
+  const providerLabel =
+    aiStatus?.provider === "gemini-direct"
+      ? `Gemini direct (${aiStatus.geminiModel})`
+      : aiStatus?.provider === "openai-direct"
+        ? `OpenAI direct (${aiStatus.openaiModel})`
+        : aiStatus?.provider === "lovable-gateway"
+          ? "Lovable AI Gateway"
+          : "Not configured";
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -111,22 +149,14 @@ function AdminReportsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Report catalog</h1>
           <p className="text-sm text-muted-foreground">
-            Control pricing and visibility for every Cosmic Blueprint report.
+            Pricing, visibility, AI provider status, and recent generations.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => stripeSync.mutate()}
-            disabled={stripeSync.isPending}
-          >
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => stripeSync.mutate()} disabled={stripeSync.isPending}>
             {stripeSync.isPending ? "Syncing Stripe…" : "Sync prices to Stripe"}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => csvExport.mutate()}
-            disabled={csvExport.isPending}
-          >
+          <Button variant="outline" onClick={() => csvExport.mutate()} disabled={csvExport.isPending}>
             {csvExport.isPending ? "Exporting…" : "Download Stripe CSV"}
           </Button>
           <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
@@ -137,16 +167,82 @@ function AdminReportsPage() {
 
       <AdminNav />
 
-      <div className="mb-6 grid grid-cols-3 gap-3">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Reports" value={data?.length ?? 0} />
         <Stat label="Published" value={published} />
         <Stat label="Free" value={free} />
+        <Stat label="Unfiltered Series" value={unfiltered} />
+      </div>
+
+      <div className="mb-6 rounded-md border p-4 space-y-2">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">AI writing provider</div>
+        <div className="text-lg font-semibold">{providerLabel}</div>
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <span>OPENAI_API_KEY: {aiStatus?.hasOpenAI ? "set" : "missing"}</span>
+          <span>GEMINI_API_KEY: {aiStatus?.hasGemini ? "set" : "missing"}</span>
+          <span>LOVABLE_API_KEY: {aiStatus?.hasLovable ? "set" : "missing"}</span>
+          {aiStatus?.forced && <span>AI_PROVIDER forced: {aiStatus.forced}</span>}
+        </div>
+        {!aiStatus?.ready && (
+          <p className="text-sm text-destructive">
+            No AI key configured. Add GEMINI_API_KEY (or OPENAI_API_KEY) in Lovable project secrets so
+            reports can generate.
+          </p>
+        )}
+        {aiStatus?.ready && aiStatus.provider === "lovable-gateway" && (
+          <p className="text-sm text-amber-600">
+            Using Lovable credits. Set GEMINI_API_KEY or OPENAI_API_KEY to bill your own account.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          To run reports end-to-end: home page → natal chart → Add partner chart → Generate "THE
+          RELATIONSHIP CRIME SCENE™" (or any synastry report).
+        </p>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="mb-2 text-sm font-medium">Recent generations</h2>
+        {!generations?.length ? (
+          <p className="text-sm text-muted-foreground">No report.generate audit rows yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left">
+                <tr>
+                  <th className="p-2">When</th>
+                  <th className="p-2">Report</th>
+                  <th className="p-2">Actor</th>
+                  <th className="p-2">Provider / reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {generations.map((g) => {
+                  const meta = (g.metadata ?? {}) as Record<string, unknown>;
+                  return (
+                    <tr key={g.id} className="border-t">
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {g.created_at ? new Date(g.created_at).toLocaleString() : "—"}
+                      </td>
+                      <td className="p-2">
+                        {(meta.title as string) || g.target_report_id || "—"}
+                      </td>
+                      <td className="p-2 text-xs">{g.actor_email || g.actor_id}</td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {[meta.aiProvider, meta.accessReason].filter(Boolean).join(" · ") || "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <input
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        placeholder="Filter by title or category…"
+        placeholder="Filter by title, id, or category…"
         className="mb-4 w-full rounded-md border bg-background px-3 py-2 text-sm"
       />
 
@@ -205,6 +301,7 @@ function Row({
           <span>{row.icon}</span>
           <div>
             <div className="font-medium">{row.title}</div>
+            <div className="text-xs text-muted-foreground">{row.id}</div>
             <div className="text-xs text-muted-foreground">{row.tagline}</div>
           </div>
         </div>
