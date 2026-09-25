@@ -39,7 +39,6 @@ const ChartSchema = z.object({
   ascendant: z.number(),
   midheaven: z.number(),
   bodies: z.array(BodySchema).min(1).max(40),
-  // Accept 12 Placidus cusps; tolerate slight variance from clients.
   houses: z.array(z.number()).min(12).max(12),
   aspects: z.array(AspectSchema).max(120),
 });
@@ -130,16 +129,18 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       if (
         msg.includes("LOVABLE_API_KEY") ||
         msg.includes("GEMINI_API_KEY") ||
+        msg.includes("OPENAI_API_KEY") ||
         msg.includes("not configured")
       ) {
         throw new Error(
-          "Report engine is not configured. Add GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets.",
+          "Report engine is not configured. Add GEMINI_API_KEY (preferred), OPENAI_API_KEY, or LOVABLE_API_KEY in project secrets.",
         );
       }
       throw new Error(msg || "Report generation failed.");
     }
 
     try {
+      const { whichWritingProvider } = await import("@/lib/ai-gateway.server");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("admin_audit_log").insert({
         actor_id: context.userId,
@@ -153,6 +154,7 @@ export const generateAstroReport = createServerFn({ method: "POST" })
           chartName: data.chart.input.name,
           partnerName: data.partnerChart?.input.name ?? null,
           accessReason: access.reason,
+          aiProvider: whichWritingProvider(),
           isFree:
             access.reason === "admin" ||
             access.reason === "free" ||
