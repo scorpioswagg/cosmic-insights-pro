@@ -8,8 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
-import { calculateSynastryAspects } from "@/lib/astrology/synastry";
-import { sendWelcomeLifecycleEmail } from "@/lib/email/lifecycle.functions";
+import { computeSynastry } from "@/lib/astrology/synastry";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -70,7 +69,6 @@ function Index() {
           // ignore
         }
       }
-      void sendWelcomeLifecycleEmail({}).catch(() => {});
       try {
         const { data: roleData } = await supabase.rpc("has_role", {
           _user_id: u.id,
@@ -243,7 +241,7 @@ function Index() {
         </header>
 
         {showWelcome && user && (
-          <WelcomeModal name={user.name || user.email || "traveler"} onDismiss={dismissWelcome} />
+          <WelcomeModal open={showWelcome} onDismiss={dismissWelcome} />
         )}
 
         {!user && !authLoading ? (
@@ -400,31 +398,36 @@ function Index() {
                       <PlacementsTable chart={partnerChart} />
                     </div>
                     <div className="glass rounded-2xl p-6 shadow-deep space-y-3">
-                      <h3 className="font-display text-xl text-gradient-gold">
-                        Cross-chart aspects (
-                        {calculateSynastryAspects(chart, partnerChart).length})
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Tightest contacts between {chart.input.name} and {partnerChart.input.name}.
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        {calculateSynastryAspects(chart, partnerChart)
-                          .slice(0, 24)
-                          .map((a, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between bg-card/50 rounded-md px-3 py-2 border border-border/40"
-                            >
-                              <span>
-                                <span className="text-gold">{a.a}</span> {a.type}{" "}
-                                <span className="text-gold">{a.b}</span>
-                              </span>
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {a.orb.toFixed(2)}°
-                              </span>
+                      {(() => {
+                        const syn = computeSynastry(chart, partnerChart);
+                        return (
+                          <>
+                            <h3 className="font-display text-xl text-gradient-gold">
+                              Cross-chart aspects ({syn.aspects.length})
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Tightest contacts between {chart.input.name} and{" "}
+                              {partnerChart.input.name}.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                              {syn.aspects.slice(0, 24).map((a, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center justify-between bg-card/50 rounded-md px-3 py-2 border border-border/40"
+                                >
+                                  <span>
+                                    <span className="text-gold">{a.a}</span> {a.type}{" "}
+                                    <span className="text-gold">{a.b}</span>
+                                  </span>
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {a.orb.toFixed(2)}°
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                      </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
