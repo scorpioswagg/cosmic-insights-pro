@@ -120,7 +120,12 @@ export function ReportsPanel({
       })),
       houses: c.houses,
       aspects: c.aspects.slice(0, 80).map((a) => ({
-        a: a.a, b: a.b, type: a.type, angle: a.angle, orb: a.orb, applying: a.applying,
+        a: a.a,
+        b: a.b,
+        type: a.type,
+        angle: a.angle,
+        orb: a.orb,
+        applying: a.applying,
       })),
     };
   }
@@ -129,12 +134,15 @@ export function ReportsPanel({
     setError(null);
     const def = REPORTS.find((r) => r.id === reportId);
     if (def?.adult && !adultUnlocked) {
-      const ok = typeof window !== "undefined" &&
+      const ok =
+        typeof window !== "undefined" &&
         window.confirm(
-          "This is an 18+ Intimacy report with explicit sexual content. Confirm you are 18 or older and want to proceed."
+          "This is an 18+ Intimacy report with explicit sexual content. Confirm you are 18 or older and want to proceed.",
         );
       if (!ok) return;
-      try { await runAckAdult({}); } catch (e) {
+      try {
+        await runAckAdult({});
+      } catch (e) {
         setError((e as Error).message || "Could not record adult consent.");
         return;
       }
@@ -172,8 +180,10 @@ export function ReportsPanel({
         setError("Please sign in with Google to generate reports.");
       } else if (msg.includes("Invalid chart data")) {
         setError(msg + " Try recalculating your chart, then generate again.");
-      } else if (msg.includes("LOVABLE") || msg.includes("AI key")) {
-        setError("Report AI is not configured. Set LOVABLE_API_KEY in the project environment.");
+      } else if (msg.includes("LOVABLE") || msg.includes("AI key") || msg.includes("GEMINI")) {
+        setError(
+          "Report AI is not configured. Set GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets.",
+        );
       } else {
         setError(msg);
       }
@@ -184,9 +194,8 @@ export function ReportsPanel({
   }
 
   const priceById = new Map((catalog ?? []).map((p) => [p.id, p]));
-  const visible = catalog && catalog.length > 0
-    ? REPORTS.filter((r) => priceById.has(r.id))
-    : REPORTS;
+  const visible =
+    catalog && catalog.length > 0 ? REPORTS.filter((r) => priceById.has(r.id)) : REPORTS;
 
   const grouped = visible.reduce<Record<string, typeof REPORTS>>((acc, r) => {
     (acc[r.category] ||= []).push(r);
@@ -213,6 +222,62 @@ export function ReportsPanel({
     downloadLuxuryReportPdf(r, chart, partnerChart);
   }
 
+  /** Admin / free mode: generate every unlocked report sequentially with progress. */
+  async function runBulkGenerate() {
+    if (isBulkRunning) return;
+    const targets = visible.filter((r) => isUnlocked(r.id));
+    if (targets.length === 0) {
+      toast.error("No unlocked reports to generate.");
+      return;
+    }
+    const failures: { title: string; message: string }[] = [];
+    setBulk({
+      label: "Bulk generate",
+      current: 0,
+      total: targets.length,
+      currentTitle: "",
+      failures: [],
+    });
+    setError(null);
+    for (let i = 0; i < targets.length; i++) {
+      const r = targets[i];
+      setBulk({
+        label: "Bulk generate",
+        current: i + 1,
+        total: targets.length,
+        currentTitle: r.title,
+        failures: [...failures],
+      });
+      if (r.requiresPartner && !partnerChart) {
+        failures.push({ title: r.title, message: "Skipped — partner chart required" });
+        continue;
+      }
+      if (reports[r.id]) continue;
+      try {
+        setLoadingId(r.id);
+        const chartPayload = toChartPayload(chart);
+        const partnerPayload = partnerChart ? toChartPayload(partnerChart) : undefined;
+        const result = await runReport({
+          data: { reportId: r.id, chart: chartPayload, partnerChart: partnerPayload },
+        });
+        setReports((prev) => ({ ...prev, [r.id]: result }));
+      } catch (e) {
+        failures.push({ title: r.title, message: (e as Error).message || "failed" });
+      } finally {
+        setLoadingId(null);
+      }
+    }
+    setBulk(null);
+    if (failures.length) {
+      setError(
+        `Bulk finished with ${failures.length} issue(s): ${failures.map((f) => f.title).join(", ")}`,
+      );
+      toast.error(`Bulk done — ${failures.length} failed or skipped`);
+    } else {
+      toast.success(`Bulk complete — ${targets.length} reports`);
+    }
+  }
+
   function isUnlocked(id: string): boolean {
     if (ALL_REPORTS_FREE) return true;
     if (isAdmin) return true;
@@ -233,11 +298,11 @@ export function ReportsPanel({
   }
 
   function statusLabel(id: string): string {
-    if (ALL_REPORTS_FREE) return "🆓 Free";
-    if (isAdmin) return "🆓 Included";
+    if (ALL_REPORTS_FREE) return "Free";
+    if (isAdmin) return "Included";
     const p = priceById.get(id);
-    if (p && (p.is_free || p.price_cents <= 0)) return "🆓 Free";
-    return isUnlocked(id) ? "🔓 Unlocked" : "🔒 Locked";
+    if (p && (p.is_free || p.price_cents <= 0)) return "Free";
+    return isUnlocked(id) ? "Unlocked" : "Locked";
   }
 
   async function purchase(reportId: string) {
@@ -270,7 +335,8 @@ export function ReportsPanel({
         <p className="text-xs uppercase tracking-[0.35em] text-gold mb-2">Premium Reports</p>
         <h2 className="font-display text-4xl text-gradient-gold">{visible.length} Astrological Reports</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Each report is generated from your real Swiss Ephemeris chart data — no templates, no guesswork.
+          Each report is generated from your real Swiss Ephemeris chart data — no templates, no
+          guesswork.
         </p>
         {ALL_REPORTS_FREE && (
           <p className="mt-2 text-xs text-gold">All reports are free right now — generate anything.</p>
@@ -280,12 +346,34 @@ export function ReportsPanel({
         )}
         {partnerChart ? (
           <p className="mt-3 text-xs text-gold">
-            ✦ Partner chart loaded: <span className="font-medium">{partnerChart.input.name}</span> — synastry reports are ready.
+            Partner chart loaded: <span className="font-medium">{partnerChart.input.name}</span> —
+            synastry reports are ready.
           </p>
         ) : (
           <p className="mt-3 text-xs text-muted-foreground">
-            Synastry (two-chart) reports require a partner chart. Scroll up to add one, then return here.
+            Synastry (two-chart) reports require a partner chart. Scroll up to add one, then return
+            here.
           </p>
+        )}
+        {(isAdmin || ALL_REPORTS_FREE) && (
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              disabled={isBulkRunning || !!loadingId}
+              onClick={() => void runBulkGenerate()}
+              className="text-xs uppercase tracking-widest px-4 py-2 rounded-md border border-gold/50 text-gold hover:bg-gold/10 disabled:opacity-50"
+            >
+              {isBulkRunning
+                ? `Generating ${bulk?.current ?? 0}/${bulk?.total ?? 0} — ${bulk?.currentTitle ?? ""}`
+                : "Bulk generate all unlocked"}
+            </button>
+            {isBulkRunning && bulk && (
+              <p className="text-[11px] text-muted-foreground">
+                {bulk.current} / {bulk.total}
+                {bulk.failures.length ? ` · ${bulk.failures.length} issues` : ""}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -318,7 +406,10 @@ export function ReportsPanel({
                   {busy && (
                     <div className="space-y-1">
                       <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
-                        <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${genPct}%` }} />
+                        <div
+                          className="h-full rounded-full bg-gold transition-all"
+                          style={{ width: `${genPct}%` }}
+                        />
                       </div>
                       <p className="text-[10px] text-muted-foreground">Writing… {genPct}%</p>
                     </div>
@@ -345,8 +436,20 @@ export function ReportsPanel({
                     )}
                     {reports[r.id] && (
                       <>
-                        <button type="button" onClick={() => downloadReport(reports[r.id])} className="text-xs text-muted-foreground hover:text-gold">MD</button>
-                        <button type="button" onClick={() => downloadReportPdf(reports[r.id])} className="text-xs text-muted-foreground hover:text-gold">PDF</button>
+                        <button
+                          type="button"
+                          onClick={() => downloadReport(reports[r.id])}
+                          className="text-xs text-muted-foreground hover:text-gold"
+                        >
+                          MD
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadReportPdf(reports[r.id])}
+                          className="text-xs text-muted-foreground hover:text-gold"
+                        >
+                          PDF
+                        </button>
                       </>
                     )}
                   </div>
@@ -358,7 +461,10 @@ export function ReportsPanel({
       ))}
 
       {active && (
-        <article id={`report-${active.reportId}`} className="glass rounded-2xl p-6 shadow-deep prose prose-invert max-w-none">
+        <article
+          id={`report-${active.reportId}`}
+          className="glass rounded-2xl p-6 shadow-deep prose prose-invert max-w-none"
+        >
           <h3 className="font-display text-2xl text-gradient-gold">{active.title}</h3>
           <ReactMarkdown>{active.markdown}</ReactMarkdown>
         </article>
