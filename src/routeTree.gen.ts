@@ -9,38 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SynastryRouteImport } from './routes/synastry'
-import { Route as MyReportsRouteImport } from './routes/my-reports'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
-import { Route as CheckoutCancelRouteImport } from './routes/checkout.cancel'
-import { Route as ApiSendReportRouteImport } from './routes/api/send-report'
-import { Route as AdminReportsRouteImport } from './routes/admin.reports'
-import { Route as AdminPurchasesRouteImport } from './routes/admin.purchases'
-import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
-import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AcademyRouteImport } from './routes/academy'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as MyReportsRouteImport } from './routes/my-reports'
+import { Route as SynastryRouteImport } from './routes/synastry'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
+import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
+import { Route as AdminPurchasesRouteImport } from './routes/admin.purchases'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as ApiSendReportRouteImport } from './routes/api/send-report'
+import { Route as CheckoutCancelRouteImport } from './routes/checkout.cancel'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
 import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 
-const SynastryRoute = SynastryRouteImport.update({
-  id: '/synastry',
-  path: '/synastry',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MyReportsRoute = MyReportsRouteImport.update({
-  id: '/my-reports',
-  path: '/my-reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcademyRoute = AcademyRouteImport.update({
@@ -48,34 +38,36 @@ const AcademyRoute = AcademyRouteImport.update({
   path: '/academy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
-  id: '/checkout/success',
-  path: '/checkout/success',
+const MyReportsRoute = MyReportsRouteImport.update({
+  id: '/my-reports',
+  path: '/my-reports',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutCancelRoute = CheckoutCancelRouteImport.update({
-  id: '/checkout/cancel',
-  path: '/checkout/cancel',
+const SynastryRoute = SynastryRouteImport.update({
+  id: '/synastry',
+  path: '/synastry',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSendReportRoute = ApiSendReportRouteImport.update({
-  id: '/api/send-report',
-  path: '/api/send-report',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminReportsRoute = AdminReportsRouteImport.update({
-  id: '/admin/reports',
-  path: '/admin/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminPurchasesRoute = AdminPurchasesRouteImport.update({
-  id: '/admin/purchases',
-  path: '/admin/purchases',
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
+  id: '/admin/administrators',
+  path: '/admin/administrators',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminEmailsRoute = AdminEmailsRouteImport.update({
@@ -83,26 +75,34 @@ const AdminEmailsRoute = AdminEmailsRouteImport.update({
   path: '/admin/emails',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
-  id: '/admin/administrators',
-  path: '/admin/administrators',
+const AdminPurchasesRoute = AdminPurchasesRouteImport.update({
+  id: '/admin/purchases',
+  path: '/admin/purchases',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiWebhooksResendRoute = ApiWebhooksResendRouteImport.update({
-  id: '/api/webhooks/resend',
-  path: '/api/webhooks/resend',
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSendReportRoute = ApiSendReportRouteImport.update({
+  id: '/api/send-report',
+  path: '/api/send-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutCancelRoute = CheckoutCancelRouteImport.update({
+  id: '/checkout/cancel',
+  path: '/checkout/cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
@@ -111,9 +111,9 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
+const ApiWebhooksResendRoute = ApiWebhooksResendRouteImport.update({
+  id: '/api/webhooks/resend',
+  path: '/api/webhooks/resend',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWebhooksStripeRoute = ApiPublicWebhooksStripeRouteImport.update({
@@ -269,25 +269,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/synastry': {
-      id: '/synastry'
-      path: '/synastry'
-      fullPath: '/synastry'
-      preLoaderRoute: typeof SynastryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/my-reports': {
-      id: '/my-reports'
-      path: '/my-reports'
-      fullPath: '/my-reports'
-      preLoaderRoute: typeof MyReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/academy': {
@@ -297,67 +283,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcademyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/checkout/success': {
-      id: '/checkout/success'
-      path: '/checkout/success'
-      fullPath: '/checkout/success'
-      preLoaderRoute: typeof CheckoutSuccessRouteImport
+    '/my-reports': {
+      id: '/my-reports'
+      path: '/my-reports'
+      fullPath: '/my-reports'
+      preLoaderRoute: typeof MyReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/checkout/cancel': {
-      id: '/checkout/cancel'
-      path: '/checkout/cancel'
-      fullPath: '/checkout/cancel'
-      preLoaderRoute: typeof CheckoutCancelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/send-report': {
-      id: '/api/send-report'
-      path: '/api/send-report'
-      fullPath: '/api/send-report'
-      preLoaderRoute: typeof ApiSendReportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/reports': {
-      id: '/admin/reports'
-      path: '/admin/reports'
-      fullPath: '/admin/reports'
-      preLoaderRoute: typeof AdminReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/purchases': {
-      id: '/admin/purchases'
-      path: '/admin/purchases'
-      fullPath: '/admin/purchases'
-      preLoaderRoute: typeof AdminPurchasesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/emails': {
-      id: '/admin/emails'
-      path: '/admin/emails'
-      fullPath: '/admin/emails'
-      preLoaderRoute: typeof AdminEmailsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/administrators': {
-      id: '/admin/administrators'
-      path: '/admin/administrators'
-      fullPath: '/admin/administrators'
-      preLoaderRoute: typeof AdminAdministratorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/synastry': {
+      id: '/synastry'
+      path: '/synastry'
+      fullPath: '/synastry'
+      preLoaderRoute: typeof SynastryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -367,11 +311,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/webhooks/resend': {
-      id: '/api/webhooks/resend'
-      path: '/api/webhooks/resend'
-      fullPath: '/api/webhooks/resend'
-      preLoaderRoute: typeof ApiWebhooksResendRouteImport
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/administrators': {
+      id: '/admin/administrators'
+      path: '/admin/administrators'
+      fullPath: '/admin/administrators'
+      preLoaderRoute: typeof AdminAdministratorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/emails': {
+      id: '/admin/emails'
+      path: '/admin/emails'
+      fullPath: '/admin/emails'
+      preLoaderRoute: typeof AdminEmailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/purchases': {
+      id: '/admin/purchases'
+      path: '/admin/purchases'
+      fullPath: '/admin/purchases'
+      preLoaderRoute: typeof AdminPurchasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/send-report': {
+      id: '/api/send-report'
+      path: '/api/send-report'
+      fullPath: '/api/send-report'
+      preLoaderRoute: typeof ApiSendReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/cancel': {
+      id: '/checkout/cancel'
+      path: '/checkout/cancel'
+      fullPath: '/checkout/cancel'
+      preLoaderRoute: typeof CheckoutCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/invoke-tool/$tool': {
@@ -381,11 +381,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+    '/api/webhooks/resend': {
+      id: '/api/webhooks/resend'
+      path: '/api/webhooks/resend'
+      fullPath: '/api/webhooks/resend'
+      preLoaderRoute: typeof ApiWebhooksResendRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/stripe': {
