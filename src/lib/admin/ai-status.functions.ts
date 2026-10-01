@@ -20,10 +20,10 @@ export const getWritingProviderStatus = createServerFn({ method: "GET" })
     const provider = whichWritingProvider();
     return {
       provider,
-      hasOpenAI: !!process.env.OPENAI_API_KEY?.trim(),
+      hasOpenAI: false,
       hasGemini: !!process.env.GEMINI_API_KEY?.trim(),
       hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
-      openaiModel: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+      openaiModel: null as string | null,
       geminiModel: process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash",
       forced: process.env.AI_PROVIDER?.trim() || null,
       ready: provider !== null,
