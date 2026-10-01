@@ -118,12 +118,12 @@ export const generateAstroReport = createServerFn({ method: "POST" })
         e && typeof e === "object" && "statusCode" in e
           ? Number((e as { statusCode?: unknown }).statusCode)
           : undefined;
-      if (statusCode === 402 || /payment required/i.test(msg)) {
+      if (statusCode === 402 || /payment required/i.test(msg) || /credit/i.test(msg)) {
         console.error(
           `[generateAstroReport] AI balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
         );
         throw new Error(
-          "Report writing is temporarily unavailable because the AI provider balance is exhausted. Set GEMINI_API_KEY in project secrets to bill Google directly (bypasses Lovable credits), or top up Lovable.",
+          "Report writing failed: AI balance exhausted (likely Lovable at $0 credits). Add GEMINI_API_KEY to project secrets and redeploy so generation bills Google Gemini directly.",
         );
       }
       if (
@@ -158,11 +158,11 @@ export const generateAstroReport = createServerFn({ method: "POST" })
           isFree:
             access.reason === "admin" ||
             access.reason === "free" ||
-            (access.priceCents ?? 1) <= 0,
+            access.reason === "entitlement",
         },
       });
-    } catch {
-      // Never block report delivery on logging failure.
+    } catch (auditErr) {
+      console.warn("[generateAstroReport] audit log failed", auditErr);
     }
 
     return result;
