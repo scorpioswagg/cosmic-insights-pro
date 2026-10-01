@@ -40,7 +40,7 @@ export function createGroqProvider(apiKey: string) {
   });
 }
 
-export const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
 
 export function groqModelId(): string {
   return process.env.GROQ_MODEL?.trim() || DEFAULT_GROQ_MODEL;
