@@ -116,7 +116,7 @@ function AdminReportsPage() {
       is_free?: boolean;
       is_published?: boolean;
     }) => runUpdate({ data: vars }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-report-products"] });
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-report-products"] }),
     onError: (e: Error) => toast.error(e.message),
   });
 
