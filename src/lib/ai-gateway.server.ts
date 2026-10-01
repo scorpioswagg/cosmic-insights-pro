@@ -23,11 +23,11 @@ export function createDirectGeminiProvider(apiKey: string) {
   });
 }
 
-/** Stable flash model for direct Gemini calls. */
-export const DIRECT_GEMINI_MODEL = "gemini-2.5-flash";
+/** Default flash model for direct Gemini calls (Gemini 3.8 Flash). */
+export const DIRECT_GEMINI_MODEL = "gemini-3.8-flash";
 
 /** Model id used when talking to the Lovable AI Gateway. */
-export const LOVABLE_GATEWAY_MODEL = "google/gemini-2.5-flash";
+export const LOVABLE_GATEWAY_MODEL = "google/gemini-3.8-flash";
 
 export type WritingProvider = "gemini-direct" | "lovable-gateway";
 
@@ -86,11 +86,18 @@ function geminiModelId(): string {
  * 3. LOVABLE_API_KEY → Lovable AI Gateway (credits; fails at $0)
  *
  * OpenAI is not used.
+ * Default model: gemini-3.8-flash (override with GEMINI_MODEL).
  */
 export function resolveWritingModel(): LanguageModel {
   const provider = whichWritingProvider();
   console.log("[ai-gateway] writing provider", {
     provider,
+    model:
+      provider === "gemini-direct"
+        ? geminiModelId()
+        : provider === "lovable-gateway"
+          ? LOVABLE_GATEWAY_MODEL
+          : null,
     hasGemini: !!resolveGeminiApiKey(),
     hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
     forced: process.env.AI_PROVIDER?.trim() || null,
