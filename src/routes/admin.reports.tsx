@@ -1,8 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   listAllReports,
@@ -67,30 +66,19 @@ function AdminReportsPage() {
   const [bulkLog, setBulkLog] = useState<Array<{ id: string; status: string; detail: string }>>([]);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
-  const [authed, setAuthed] = useState<boolean | null>(null);
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: s }) => setAuthed(!!s.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setAuthed(!!s));
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  const enabled = authed === true;
-
   const { data, isLoading } = useQuery({
     queryKey: ["admin-report-products"],
     queryFn: () => fetchAll(),
-    enabled,
   });
 
   const { data: aiStatus } = useQuery({
     queryKey: ["admin-ai-status"],
     queryFn: () => fetchAi(),
-    enabled,
   });
 
   const { data: generations } = useQuery({
     queryKey: ["admin-report-generations"],
     queryFn: () => fetchGens(),
-    enabled,
   });
 
   const sync = useMutation({
@@ -221,7 +209,7 @@ function AdminReportsPage() {
           applying: a.applying,
         })),
       });
-      const targets = CODE_REPORTS.slice(0, 12);
+      const targets = CODE_REPORTS;
       setBulkProgress({ done: 0, total: targets.length });
       const log: Array<{ id: string; status: string; detail: string }> = [];
       for (let i = 0; i < targets.length; i++) {
@@ -234,10 +222,13 @@ function AdminReportsPage() {
               partnerChart: t.requiresPartner ? toPayload(partner) : undefined,
             },
           });
+          const partnerNote = t.requiresPartner
+            ? " · partner=Partner Fixture"
+            : " · solo";
           log.push({
             id: t.id,
             status: "ok",
-            detail: `${result.title} · ${(result.markdown?.length ?? 0)} chars`,
+            detail: `${result.title} · ${(result.markdown?.length ?? 0)} chars${partnerNote}`,
           });
         } catch (e) {
           log.push({
@@ -250,7 +241,7 @@ function AdminReportsPage() {
         setBulkProgress({ done: i + 1, total: targets.length });
       }
       toast.success(
-        `Bulk smoke finished (${log.filter((x) => x.status === "ok").length}/${targets.length} ok)`,
+        `Catalog bulk finished (${log.filter((x) => x.status === "ok").length}/${targets.length} ok)`,
       );
     } catch (e) {
       toast.error((e as Error).message);
@@ -258,18 +249,6 @@ function AdminReportsPage() {
     } finally {
       setBulkRunning(false);
     }
-  }
-
-  if (authed === false) {
-    return (
-      <div className="mx-auto max-w-2xl p-8">
-        <AdminNav />
-        <h1 className="mb-2 text-2xl font-semibold">Report catalog</h1>
-        <p className="text-sm text-muted-foreground">
-          Please sign in with your admin account on the home page to view this page.
-        </p>
-      </div>
-    );
   }
 
   return (
@@ -306,26 +285,46 @@ function AdminReportsPage() {
         </div>
         {!aiStatus?.ready && (
           <p className="text-sm text-destructive">
-            No AI key configured. Add GEMINI_API_KEY in project secrets so reports can generate.
+            No AI key configured. Add GEMINI_API_KEY in Lovable/Vercel project secrets so reports can
+            generate.
+          </p>
+        )}
+        {aiStatus?.ready && aiStatus.provider === "lovable-gateway" && (
+          <p className="text-sm text-amber-600">
+            Using Lovable credits (will fail at $0). Set GEMINI_API_KEY in secrets and redeploy to bill
+            Google directly.
+          </p>
+        )}
+        {aiStatus?.ready && aiStatus.provider === "gemini-direct" && (
+          <p className="text-sm text-emerald-600">
+            Gemini direct is active — report generation does not use Lovable credits.
           </p>
         )}
         <p className="text-xs text-muted-foreground">
           Home → natal chart → Add partner chart → Generate a synastry report.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button variant="secondary" disabled={bulkRunning} onClick={() => void runAdminBulkGenerate()}>
+          <Button
+            variant="secondary"
+            disabled={bulkRunning}
+            onClick={() => void runAdminBulkGenerate()}
+          >
             {bulkRunning
-              ? `Smoke generating… ${bulkProgress ? `${bulkProgress.done}/${bulkProgress.total}` : ""}`
-              : "Bulk smoke-generate (12 reports)"}
+              ? `Generating catalog… ${bulkProgress ? `${bulkProgress.done}/${bulkProgress.total}` : ""}`
+              : `Bulk generate full catalog (${CODE_REPORTS.length} reports)`}
           </Button>
           <span className="text-xs text-muted-foreground">
-            Kyle Merritt fixture + synthetic partner for synastry.
+            Kyle Merritt fixture chart; synastry reports include synthetic partner so partner data
+            appears in the write.
           </span>
         </div>
         {(bulkRunning || bulkLog.length > 0) && (
           <ul className="mt-3 max-h-40 overflow-y-auto space-y-1 font-mono text-xs">
             {bulkLog.map((row, i) => (
-              <li key={`${row.id}-${i}`} className={row.status === "error" ? "text-destructive" : ""}>
+              <li
+                key={`${row.id}-${i}`}
+                className={row.status === "error" ? "text-destructive" : ""}
+              >
                 [{row.status}] {row.id}: {row.detail}
               </li>
             ))}
