@@ -108,15 +108,22 @@ export function resolveWritingModel(): LanguageModel {
   console.log("[ai-gateway] writing provider", {
     provider,
     model:
-      provider === "gemini-direct"
-        ? geminiModelId()
-        : provider === "lovable-gateway"
-          ? LOVABLE_GATEWAY_MODEL
-          : null,
+      provider === "groq"
+        ? groqModelId()
+        : provider === "gemini-direct"
+          ? geminiModelId()
+          : provider === "lovable-gateway"
+            ? LOVABLE_GATEWAY_MODEL
+            : null,
+    hasGroq: !!resolveGroqApiKey(),
     hasGemini: !!resolveGeminiApiKey(),
     hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
     forced: process.env.AI_PROVIDER?.trim() || null,
   });
+
+  if (provider === "groq") {
+    return createGroqProvider(resolveGroqApiKey()!)(groqModelId());
+  }
 
   if (provider === "gemini-direct") {
     const key = resolveGeminiApiKey()!;
