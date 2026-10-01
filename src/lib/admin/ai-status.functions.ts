@@ -21,6 +21,7 @@ export const getWritingProviderStatus = createServerFn({ method: "GET" })
     return {
       provider,
       hasOpenAI: false,
+      hasGroq: !!process.env.GROQ_API_KEY?.trim(),
       hasGemini: !!resolveGeminiApiKey(),
       hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
       openaiModel: null as string | null,
