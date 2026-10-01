@@ -1,7 +1,8 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   listAllReports,
@@ -66,19 +67,30 @@ function AdminReportsPage() {
   const [bulkLog, setBulkLog] = useState<Array<{ id: string; status: string; detail: string }>>([]);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: s }) => setAuthed(!!s.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setAuthed(!!s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  const enabled = authed === true;
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-report-products"],
     queryFn: () => fetchAll(),
+    enabled,
   });
 
   const { data: aiStatus } = useQuery({
     queryKey: ["admin-ai-status"],
     queryFn: () => fetchAi(),
+    enabled,
   });
 
   const { data: generations } = useQuery({
     queryKey: ["admin-report-generations"],
     queryFn: () => fetchGens(),
+    enabled,
   });
 
   const sync = useMutation({
@@ -246,6 +258,18 @@ function AdminReportsPage() {
     } finally {
       setBulkRunning(false);
     }
+  }
+
+  if (authed === false) {
+    return (
+      <div className="mx-auto max-w-2xl p-8">
+        <AdminNav />
+        <h1 className="mb-2 text-2xl font-semibold">Report catalog</h1>
+        <p className="text-sm text-muted-foreground">
+          Please sign in with your admin account on the home page to view this page.
+        </p>
+      </div>
+    );
   }
 
   return (
