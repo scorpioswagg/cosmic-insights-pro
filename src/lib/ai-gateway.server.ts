@@ -31,6 +31,21 @@ export const LOVABLE_GATEWAY_MODEL = "google/gemini-2.5-flash";
 
 export type WritingProvider = "gemini-direct" | "lovable-gateway";
 
+/** Read Gemini key from common secret names Lovable / Vercel users set. */
+export function resolveGeminiApiKey(): string | null {
+  const candidates = [
+    process.env.GEMINI_API_KEY,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    process.env.GOOGLE_API_KEY,
+    process.env.GOOGLE_GEMINI_API_KEY,
+  ];
+  for (const c of candidates) {
+    const v = c?.trim();
+    if (v) return v;
+  }
+  return null;
+}
+
 /**
  * Which provider will be used, or null if none is configured.
  * Optional AI_PROVIDER=gemini|lovable forces a specific path when that key exists.
@@ -38,7 +53,7 @@ export type WritingProvider = "gemini-direct" | "lovable-gateway";
  */
 export function whichWritingProvider(): WritingProvider | null {
   const forced = process.env.AI_PROVIDER?.trim().toLowerCase();
-  const hasGemini = !!process.env.GEMINI_API_KEY?.trim();
+  const hasGemini = !!resolveGeminiApiKey();
   const hasLovable = !!process.env.LOVABLE_API_KEY?.trim();
 
   if (forced === "openai") {
@@ -67,7 +82,7 @@ function geminiModelId(): string {
  *
  * Priority:
  * 1. AI_PROVIDER=gemini|lovable (when that key is set)
- * 2. GEMINI_API_KEY  → gemini-2.5-flash (or GEMINI_MODEL)
+ * 2. GEMINI_API_KEY (or GOOGLE_GENERATIVE_AI_API_KEY / GOOGLE_API_KEY)
  * 3. LOVABLE_API_KEY → Lovable AI Gateway (credits; fails at $0)
  *
  * OpenAI is not used.
@@ -76,13 +91,13 @@ export function resolveWritingModel(): LanguageModel {
   const provider = whichWritingProvider();
   console.log("[ai-gateway] writing provider", {
     provider,
-    hasGemini: !!process.env.GEMINI_API_KEY?.trim(),
+    hasGemini: !!resolveGeminiApiKey(),
     hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
     forced: process.env.AI_PROVIDER?.trim() || null,
   });
 
   if (provider === "gemini-direct") {
-    const key = process.env.GEMINI_API_KEY!.trim();
+    const key = resolveGeminiApiKey()!;
     return createDirectGeminiProvider(key)(geminiModelId());
   }
 
@@ -92,6 +107,6 @@ export function resolveWritingModel(): LanguageModel {
   }
 
   throw new Error(
-    "Report engine is not configured: set GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets. OpenAI is disabled.",
+    "Report engine is not configured: set GEMINI_API_KEY in project secrets (exact name), then republish. OpenAI is disabled.",
   );
 }

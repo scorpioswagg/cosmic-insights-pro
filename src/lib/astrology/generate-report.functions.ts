@@ -105,6 +105,9 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       );
     }
 
+    const { whichWritingProvider } = await import("@/lib/ai-gateway.server");
+    const activeProvider = whichWritingProvider();
+
     let result;
     try {
       result = await generateReportMarkdown({
@@ -118,28 +121,51 @@ export const generateAstroReport = createServerFn({ method: "POST" })
         e && typeof e === "object" && "statusCode" in e
           ? Number((e as { statusCode?: unknown }).statusCode)
           : undefined;
-      if (statusCode === 402 || /payment required/i.test(msg) || /credit/i.test(msg)) {
-        console.error(
-          `[generateAstroReport] AI balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
-        );
+      console.error(
+        `[generateAstroReport] provider=${activeProvider} status=${statusCode ?? "n/a"} reportId=${data.reportId}`,
+        msg.slice(0, 400),
+      );
+
+      // Only blame Lovable credits when we are actually on the Lovable gateway.
+      if (
+        activeProvider === "lovable-gateway" &&
+        (statusCode === 402 || /payment required/i.test(msg) || /credit/i.test(msg))
+      ) {
         throw new Error(
-          "Report writing failed: AI balance exhausted (likely Lovable at $0 credits). Add GEMINI_API_KEY to project secrets and redeploy so generation bills Google Gemini directly.",
+          "Report writing failed: Lovable AI credits are exhausted. Set GEMINI_API_KEY (exact name) in secrets and republish, or top up Lovable credits.",
         );
       }
+
+      // Gemini-specific failures (key not visible at runtime, invalid key, model, quota).
+      if (activeProvider === "gemini-direct") {
+        if (/api key|invalid|unauthorized|401|403|permission/i.test(msg)) {
+          throw new Error(
+            "Gemini rejected the API key. Confirm GEMINI_API_KEY in Lovable secrets is a valid Google AI Studio key, then republish.",
+          );
+        }
+        if (/quota|rate limit|resource exhausted|429/i.test(msg)) {
+          throw new Error(
+            "Gemini quota or rate limit hit. Check Google AI Studio billing/quota, wait, and retry.",
+          );
+        }
+        throw new Error(
+          `Gemini generation failed: ${msg.slice(0, 280)}`,
+        );
+      }
+
       if (
         msg.includes("LOVABLE_API_KEY") ||
         msg.includes("GEMINI_API_KEY") ||
         msg.includes("not configured")
       ) {
         throw new Error(
-          "Report engine is not configured. Add GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets. OpenAI is disabled.",
+          "Report engine is not configured. In Lovable → Secrets add GEMINI_API_KEY (exact spelling), then Publish/Redeploy so the server process receives it.",
         );
       }
       throw new Error(msg || "Report generation failed.");
     }
 
     try {
-      const { whichWritingProvider } = await import("@/lib/ai-gateway.server");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("admin_audit_log").insert({
         actor_id: context.userId,
@@ -153,7 +179,7 @@ export const generateAstroReport = createServerFn({ method: "POST" })
           chartName: data.chart.input.name,
           partnerName: data.partnerChart?.input.name ?? null,
           accessReason: access.reason,
-          aiProvider: whichWritingProvider(),
+          aiProvider: activeProvider,
           isFree:
             access.reason === "admin" ||
             access.reason === "free" ||

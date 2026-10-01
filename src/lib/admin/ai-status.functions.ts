@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { whichWritingProvider } from "@/lib/ai-gateway.server";
+import { whichWritingProvider, resolveGeminiApiKey } from "@/lib/ai-gateway.server";
 
 function claimEmail(context: { claims?: unknown }): string | null {
   const email = (context.claims as { email?: unknown } | undefined)?.email;
@@ -21,7 +21,7 @@ export const getWritingProviderStatus = createServerFn({ method: "GET" })
     return {
       provider,
       hasOpenAI: false,
-      hasGemini: !!process.env.GEMINI_API_KEY?.trim(),
+      hasGemini: !!resolveGeminiApiKey(),
       hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
       openaiModel: null as string | null,
       geminiModel: process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash",
