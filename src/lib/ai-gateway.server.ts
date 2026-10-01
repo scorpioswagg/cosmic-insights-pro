@@ -18,7 +18,7 @@ export function createLovableAiGatewayProvider(apiKey: string) {
 export function createDirectGeminiProvider(apiKey: string) {
   return createOpenAICompatible({
     name: "google-gemini-direct",
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
     apiKey,
   });
 }
@@ -62,9 +62,10 @@ export function whichWritingProvider(): WritingProvider | null {
     return "lovable-gateway";
   }
 
-  // Default priority: own OpenAI → own Gemini → Lovable credits
-  if (hasOpenAI) return "openai-direct";
+  // Prefer Gemini for report writing (avoids Lovable 0-credit failures).
+  // Order: Gemini → OpenAI → Lovable credits
   if (hasGemini) return "gemini-direct";
+  if (hasOpenAI) return "openai-direct";
   if (hasLovable) return "lovable-gateway";
   return null;
 }
@@ -82,12 +83,19 @@ function geminiModelId(): string {
  *
  * Priority:
  * 1. AI_PROVIDER=openai|gemini|lovable (when that key is set)
- * 2. OPENAI_API_KEY  → gpt-4o-mini (or OPENAI_MODEL)
- * 3. GEMINI_API_KEY  → gemini-2.5-flash (or GEMINI_MODEL)
- * 4. LOVABLE_API_KEY → Lovable AI Gateway
+ * 2. GEMINI_API_KEY  → gemini-2.5-flash (or GEMINI_MODEL)  [preferred — no Lovable credits]
+ * 3. OPENAI_API_KEY  → gpt-4o-mini (or OPENAI_MODEL)
+ * 4. LOVABLE_API_KEY → Lovable AI Gateway (credits; fails at $0)
  */
 export function resolveWritingModel(): LanguageModel {
   const provider = whichWritingProvider();
+  console.log("[ai-gateway] writing provider", {
+    provider,
+    hasGemini: !!process.env.GEMINI_API_KEY?.trim(),
+    hasOpenAI: !!process.env.OPENAI_API_KEY?.trim(),
+    hasLovable: !!process.env.LOVABLE_API_KEY?.trim(),
+    forced: process.env.AI_PROVIDER?.trim() || null,
+  });
 
   if (provider === "openai-direct") {
     const key = process.env.OPENAI_API_KEY!.trim();
