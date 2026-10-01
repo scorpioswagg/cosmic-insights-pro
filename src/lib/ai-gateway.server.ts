@@ -29,7 +29,26 @@ export const DIRECT_GEMINI_MODEL = "gemini-3.8-flash";
 /** Model id used when talking to the Lovable AI Gateway. */
 export const LOVABLE_GATEWAY_MODEL = "google/gemini-3.8-flash";
 
-export type WritingProvider = "gemini-direct" | "lovable-gateway";
+export type WritingProvider = "groq" | "gemini-direct" | "lovable-gateway";
+
+/** Groq free tier (no card). OpenAI-compatible endpoint. */
+export function createGroqProvider(apiKey: string) {
+  return createOpenAICompatible({
+    name: "groq",
+    baseURL: "https://api.groq.com/openai/v1",
+    apiKey,
+  });
+}
+
+export const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+
+export function groqModelId(): string {
+  return process.env.GROQ_MODEL?.trim() || DEFAULT_GROQ_MODEL;
+}
+
+export function resolveGroqApiKey(): string | null {
+  return process.env.GROQ_API_KEY?.trim() || null;
+}
 
 /** Read Gemini key from common secret names Lovable / Vercel users set. */
 export function resolveGeminiApiKey(): string | null {
@@ -48,26 +67,22 @@ export function resolveGeminiApiKey(): string | null {
 
 /**
  * Which provider will be used, or null if none is configured.
- * Optional AI_PROVIDER=gemini|lovable forces a specific path when that key exists.
- * OpenAI is intentionally disabled.
+ * Optional AI_PROVIDER=groq|gemini|lovable forces a specific path when that key exists.
  */
 export function whichWritingProvider(): WritingProvider | null {
   const forced = process.env.AI_PROVIDER?.trim().toLowerCase();
+  const hasGroq = !!resolveGroqApiKey();
   const hasGemini = !!resolveGeminiApiKey();
   const hasLovable = !!process.env.LOVABLE_API_KEY?.trim();
 
-  if (forced === "openai") {
-    console.warn(
-      "[ai-gateway] AI_PROVIDER=openai is disabled; use gemini or lovable.",
-    );
-  }
-
+  if (forced === "groq" && hasGroq) return "groq";
   if (forced === "gemini" && hasGemini) return "gemini-direct";
   if ((forced === "lovable" || forced === "lovable-gateway") && hasLovable) {
     return "lovable-gateway";
   }
 
-  // Prefer Gemini (no Lovable credits). Fallback: Lovable gateway only.
+  // Prefer Groq (free), then Gemini, then Lovable gateway.
+  if (hasGroq) return "groq";
   if (hasGemini) return "gemini-direct";
   if (hasLovable) return "lovable-gateway";
   return null;

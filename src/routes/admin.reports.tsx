@@ -143,7 +143,9 @@ function AdminReportsPage() {
   const unfiltered = (data ?? []).filter((r) => r.category === "Unfiltered Series").length;
 
   const providerLabel =
-    aiStatus?.provider === "gemini-direct"
+    aiStatus?.provider === "groq"
+      ? "Groq (free)"
+      : aiStatus?.provider === "gemini-direct"
       ? `Gemini direct (${aiStatus.geminiModel})`
       : aiStatus?.provider === "lovable-gateway"
         ? "Lovable AI Gateway"
