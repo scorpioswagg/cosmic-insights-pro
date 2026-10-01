@@ -129,11 +129,10 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       if (
         msg.includes("LOVABLE_API_KEY") ||
         msg.includes("GEMINI_API_KEY") ||
-        msg.includes("OPENAI_API_KEY") ||
         msg.includes("not configured")
       ) {
         throw new Error(
-          "Report engine is not configured. Add GEMINI_API_KEY (preferred), OPENAI_API_KEY, or LOVABLE_API_KEY in project secrets.",
+          "Report engine is not configured. Add GEMINI_API_KEY (preferred) or LOVABLE_API_KEY in project secrets. OpenAI is disabled.",
         );
       }
       throw new Error(msg || "Report generation failed.");
