@@ -165,6 +165,19 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       throw new Error(msg || "Report generation failed.");
     }
 
+    // Persist the birth date/name used for this chart so the daily lifecycle
+    // worker can trigger the birthday automation without storing birth time.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await (supabaseAdmin.from("profiles") as any).upsert({
+        id: context.userId,
+        birth_date: data.chart.input.date,
+        display_name: data.chart.input.name,
+      }, { onConflict: "id" });
+    } catch (profileErr) {
+      console.warn("[generateAstroReport] lifecycle profile sync failed", profileErr);
+    }
+
     // Fire the published Resend "report.ready" automation only after the report
     // has been generated successfully. The email failure must never make a
     // successfully generated report fail.
