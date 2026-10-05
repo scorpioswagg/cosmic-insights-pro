@@ -15,6 +15,7 @@ import { createBundleCheckout } from "@/lib/reports/bundle-checkout.functions";
 import { GIFT_BUNDLES, bundlePricing } from "@/lib/reports/bundles";
 import { formatPrice } from "@/lib/reports/pricing";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
+import { analyticsEvent } from "@/lib/analytics";
 
 interface GeneratedReport {
   reportId: string;
@@ -167,6 +168,7 @@ export function ReportsPanel({
         data: { reportId, chart: chartPayload, partnerChart: partnerPayload },
       });
       setReports((prev) => ({ ...prev, [reportId]: result }));
+      analyticsEvent("Report Generated", { reportId, type: def?.requiresPartner ? "synastry" : "natal" });
       setGenPct(100);
       requestAnimationFrame(() => {
         document.getElementById(`report-${reportId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
