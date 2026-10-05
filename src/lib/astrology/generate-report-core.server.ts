@@ -169,8 +169,13 @@ export async function generateReportMarkdown(input: {
 
   let text: string;
 
+  // Generate substantial multi-section reports chapter-by-chapter. A single model
+  // response can hit an output limit and silently truncate a report (especially
+  // synastry reports with 15–20 required sections). Chapter generation makes the
+  // requested structure deterministic and prevents incomplete PDFs.
   const useChapterLoop =
     def.category === "Unfiltered Series" ||
+    def.sections.length >= 12 ||
     (def.targetWords >= 4500 && def.sections.length >= 20);
 
   if (useChapterLoop) {
