@@ -9,6 +9,7 @@ import { lovable } from "@/integrations/lovable";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 import { computeSynastry } from "@/lib/astrology/synastry";
+import { analyticsEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/")({
   head: () => ({
