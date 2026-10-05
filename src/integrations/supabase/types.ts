@@ -119,34 +119,22 @@ export type Database = {
       profiles: {
         Row: {
           adult_consent: boolean
-          birthday_event_sent_on: string | null
-          birth_date: string | null
           created_at: string
-          display_name: string | null
           id: string
-          inactive_event_sent_at: string | null
           updated_at: string
           welcome_message_seen: boolean
         }
         Insert: {
           adult_consent?: boolean
-          birthday_event_sent_on?: string | null
-          birth_date?: string | null
           created_at?: string
-          display_name?: string | null
           id: string
-          inactive_event_sent_at?: string | null
           updated_at?: string
           welcome_message_seen?: boolean
         }
         Update: {
           adult_consent?: boolean
-          birthday_event_sent_on?: string | null
-          birth_date?: string | null
           created_at?: string
-          display_name?: string | null
           id?: string
-          inactive_event_sent_at?: string | null
           updated_at?: string
           welcome_message_seen?: boolean
         }
