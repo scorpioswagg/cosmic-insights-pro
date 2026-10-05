@@ -21,6 +21,19 @@ function fmtDeg(d: number) {
   return `${deg}\u00B0${String(min).padStart(2, "0")}'`;
 }
 
+
+// jsPDF built-in fonts use WinAnsi. Convert astrology glyphs to readable text before drawing.
+function normalizePdfText(value: string): string {
+  return value
+    .replace(/☌/g, "conjunction").replace(/□/g, "square").replace(/△/g, "trine").replace(/☍/g, "opposition")
+    .replace(/⚹/g, "sextile").replace(/⚻/g, "quincunx").replace(/℞/g, "(Rx)").replace(/[✦✧✶✷✹✺✵✸]/g, "*")
+    .replace(/∞/g, "infinity").replace(/♀/g, "Venus").replace(/♂/g, "Mars").replace(/☾/g, "Moon").replace(/☉/g, "Sun")
+    .replace(/☿/g, "Mercury").replace(/♃/g, "Jupiter").replace(/♄/g, "Saturn").replace(/♅/g, "Uranus")
+    .replace(/♆/g, "Neptune").replace(/♇/g, "Pluto").replace(/☊/g, "North Node").replace(/☋/g, "South Node")
+    .replace(/[♜⚒⚔⚖⚯⌂◇♧☷]/g, "*").replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, "-").replace(/…/g, "...").replace(/→/g, "->").replace(/←/g, "<-");
+}
+
 function buildLuxuryReportDoc(
   report: GeneratedReport,
   chart: ChartCalculation,
@@ -47,11 +60,12 @@ function buildLuxuryReportDoc(
     opts: { bold?: boolean; italic?: boolean; color?: [number, number, number]; gap?: number; align?: "left" | "center" | "right"; x?: number; maxWidth?: number } = {},
   ) => {
     const style = opts.bold && opts.italic ? "bolditalic" : opts.bold ? "bold" : opts.italic ? "italic" : "normal";
-    doc.setFont("times", style);
+    doc.setFont("helvetica", style);
     doc.setFontSize(size);
     setColor(opts.color ?? BODY);
     const w = opts.maxWidth ?? maxW;
-    const lines = doc.splitTextToSize(text, w) as string[];
+    const safeText = normalizePdfText(text);
+    const lines = doc.splitTextToSize(safeText, w) as string[];
     const lh = size * 1.4;
     for (const ln of lines) {
       ensureSpace(lh);
@@ -72,8 +86,10 @@ function buildLuxuryReportDoc(
 
   const calloutBox = (label: string, body: string) => {
     const padding = 10;
-    const bodyLines = doc.splitTextToSize(body, maxW - padding * 2) as string[];
-    const labelLines = doc.splitTextToSize(label.toUpperCase(), maxW - padding * 2) as string[];
+    const safeBody = normalizePdfText(body);
+    const safeLabel = normalizePdfText(label.toUpperCase());
+    const bodyLines = doc.splitTextToSize(safeBody, maxW - padding * 2) as string[];
+    const labelLines = doc.splitTextToSize(safeLabel, maxW - padding * 2) as string[];
     const boxH = padding * 2 + labelLines.length * 12 + 6 + bodyLines.length * 14;
     ensureSpace(boxH + 8);
     setFill([250, 246, 232]);
@@ -84,12 +100,12 @@ function buildLuxuryReportDoc(
     doc.rect(margin, y, 3, boxH, "F");
     const startY = y;
     y += padding + 10;
-    doc.setFont("times", "bold");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setColor(GOLD);
     for (const ln of labelLines) { doc.text(ln, margin + padding + 6, y); y += 12; }
     y += 4;
-    doc.setFont("times", "italic");
+    doc.setFont("helvetica", "italic");
     doc.setFontSize(11);
     setColor(INK);
     for (const ln of bodyLines) { doc.text(ln, margin + padding + 6, y); y += 14; }
@@ -123,40 +139,40 @@ function buildLuxuryReportDoc(
   doc.setLineWidth(1.2);
   doc.line(margin, margin, pageW - margin, margin);
   doc.line(margin, pageH - margin, pageW - margin, pageH - margin);
-  doc.setFont("times", "italic");
+  doc.setFont("helvetica", "italic");
   doc.setFontSize(11);
   setColor(GOLD_SOFT);
   doc.text("THE COSMIC BLUEPRINT\u2122", pageW / 2, pageH / 2 - 120, { align: "center" });
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(18);
   setColor(GOLD);
-  doc.text("\u2726  \u2727  \u2726", pageW / 2, pageH / 2 - 90, { align: "center" });
-  doc.setFont("times", "bold");
+  doc.text("*  *  *", pageW / 2, pageH / 2 - 90, { align: "center" });
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(32);
   setColor([245, 232, 196]);
   const titleLines = doc.splitTextToSize(report.title, maxW - 40) as string[];
   let ty = pageH / 2 - 40;
   for (const ln of titleLines) { doc.text(ln, pageW / 2, ty, { align: "center" }); ty += 38; }
-  doc.setFont("times", "italic");
+  doc.setFont("helvetica", "italic");
   doc.setFontSize(13);
   setColor(GOLD_SOFT);
   doc.text(partnerChart ? "A personalized synastry reading" : "A personalized natal reading", pageW / 2, ty + 14, { align: "center" });
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   setColor([230, 220, 200]);
   doc.text("Prepared exclusively for", pageW / 2, pageH - 220, { align: "center" });
-  doc.setFont("times", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   setColor([245, 232, 196]);
   const names = partnerChart ? `${chart.input.name}  &  ${partnerChart.input.name}` : chart.input.name;
   const nameLines = doc.splitTextToSize(names, maxW - 40) as string[];
   let ny = pageH - 195;
   for (const ln of nameLines) { doc.text(ln, pageW / 2, ny, { align: "center" }); ny += 22; }
-  doc.setFont("times", "italic");
+  doc.setFont("helvetica", "italic");
   doc.setFontSize(10);
   setColor(GOLD_SOFT);
   doc.text(`${chart.input.date} \u00B7 ${chart.input.time} \u00B7 ${chart.input.place}`, pageW / 2, pageH - 155, { align: "center" });
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   setColor([180, 170, 150]);
   doc.text(`Generated ${new Date(report.generatedAt).toLocaleString()}`, pageW / 2, pageH - margin - 20, { align: "center" });
@@ -192,7 +208,7 @@ function buildLuxuryReportDoc(
   y += 10;
   writeText("May this reading meet you exactly where you are, and remind you of what you already carry.", 13, { italic: true, color: INK, align: "center", gap: 20, maxWidth: maxW - 80 });
   y += 10;
-  writeText("\u2726", 18, { color: GOLD, align: "center" });
+  writeText("*", 18, { color: GOLD, align: "center" });
 
   // NATAL SNAPSHOT(S)
   newPage();
@@ -216,11 +232,11 @@ function buildLuxuryReportDoc(
   hr();
   y += 6;
   chapterTitles.forEach((t, i) => {
-    doc.setFont("times", "normal");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     setColor(INK);
     const num = String(i + 1).padStart(2, "0");
-    const label = `${num}   ${t}`;
+    const label = normalizePdfText(`${num}   ${t}`);
     ensureSpace(20);
     doc.text(label, margin, y);
     setDraw([200, 190, 170]);
@@ -247,7 +263,7 @@ function buildLuxuryReportDoc(
       chapterIndex += 1;
       newPage();
       writeText(`Chapter ${String(chapterIndex).padStart(2, "0")}`, 10, { italic: true, color: GOLD, align: "center", gap: 4 });
-      writeText("\u2726", 14, { color: GOLD_SOFT, align: "center", gap: 8 });
+      writeText("*", 14, { color: GOLD_SOFT, align: "center", gap: 8 });
       writeText(title, 22, { bold: true, color: INK, align: "center", gap: 10 });
       hr();
       continue;
@@ -270,13 +286,13 @@ function buildLuxuryReportDoc(
 
   y += 20;
   ensureSpace(60);
-  writeText("\u2726  \u2727  \u2726", 16, { color: GOLD, align: "center", gap: 8 });
+  writeText("*  *  *", 16, { color: GOLD, align: "center", gap: 8 });
   writeText("End of reading", 10, { italic: true, color: MUTED, align: "center" });
 
   const total = doc.getNumberOfPages();
   for (let p = 2; p <= total; p++) {
     doc.setPage(p);
-    doc.setFont("times", "italic");
+    doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
     setColor(MUTED);
     doc.text(report.title, margin, pageH - 28);
