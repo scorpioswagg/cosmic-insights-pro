@@ -9,6 +9,7 @@ import { lovable } from "@/integrations/lovable";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import type { BirthInput, ChartCalculation } from "@/lib/astrology/types";
 import { computeSynastry } from "@/lib/astrology/synastry";
+import { analyticsEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -110,6 +111,7 @@ function Index() {
   }
 
   async function handleGoogleSignIn() {
+    analyticsEvent("Auth Started", { provider: "google" });
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
@@ -120,6 +122,7 @@ function Index() {
   }
 
   async function handleAppleSignIn() {
+    analyticsEvent("Auth Started", { provider: "apple" });
     const result = await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: window.location.origin,
     });
@@ -145,10 +148,12 @@ function Index() {
       const { calculateChart } = await import("@/lib/astrology/swisseph-client");
       const c = await calculateChart(input);
       setChart(c);
+      analyticsEvent("Chart Calculated", { mode: input.timeUnknown ? "unknown_time" : "exact_time" });
       requestAnimationFrame(() => {
         document.getElementById("chart-result")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (e) {
+      analyticsEvent("Chart Calculation Failed");
       setError((e as Error).message || "Chart calculation failed.");
     } finally {
       setBusy(false);
@@ -162,6 +167,7 @@ function Index() {
       const { calculateChart } = await import("@/lib/astrology/swisseph-client");
       const result = await calculateChart(input);
       setPartnerChart(result);
+      analyticsEvent("Partner Chart Calculated", { mode: input.timeUnknown ? "unknown_time" : "exact_time" });
       setShowPartnerForm(false);
       requestAnimationFrame(() => {
         document
@@ -169,6 +175,7 @@ function Index() {
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (e) {
+      analyticsEvent("Partner Chart Failed");
       setError((e as Error).message || "Partner chart calculation failed.");
     } finally {
       setPartnerBusy(false);

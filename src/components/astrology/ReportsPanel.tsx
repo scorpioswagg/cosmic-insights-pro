@@ -15,6 +15,7 @@ import { createBundleCheckout } from "@/lib/reports/bundle-checkout.functions";
 import { GIFT_BUNDLES, bundlePricing } from "@/lib/reports/bundles";
 import { formatPrice } from "@/lib/reports/pricing";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
+import { analyticsEvent } from "@/lib/analytics";
 
 interface GeneratedReport {
   reportId: string;
@@ -167,12 +168,14 @@ export function ReportsPanel({
         data: { reportId, chart: chartPayload, partnerChart: partnerPayload },
       });
       setReports((prev) => ({ ...prev, [reportId]: result }));
+      analyticsEvent("Report Generated", { reportId, type: def?.requiresPartner ? "synastry" : "natal" });
       setGenPct(100);
       requestAnimationFrame(() => {
         document.getElementById(`report-${reportId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
       toast.success(`${def?.title ?? "Report"} ready`);
     } catch (e) {
+      analyticsEvent("Report Generation Failed", { reportId });
       const msg = (e as Error).message || "Report generation failed.";
       if (msg.includes("REPORT_LOCKED") || msg.includes("Purchase required")) {
         setError("This report is locked. Unlock it with Stripe, or sign in as an admin to generate free.");
@@ -205,6 +208,7 @@ export function ReportsPanel({
   const active = activeId ? reports[activeId] : null;
 
   function downloadReport(r: GeneratedReport) {
+    analyticsEvent("Report Downloaded", { format: "markdown" });
     const safe = r.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     const content = `# ${r.title}\n\nFor ${chart.input.name}\nGenerated ${new Date(r.generatedAt).toLocaleString()}\n\n---\n\n${r.markdown}`;
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
@@ -219,6 +223,7 @@ export function ReportsPanel({
   }
 
   function downloadReportPdf(r: GeneratedReport) {
+    analyticsEvent("Report PDF Downloaded", { format: "pdf" });
     downloadLuxuryReportPdf(r, chart, partnerChart);
   }
 
@@ -231,6 +236,7 @@ export function ReportsPanel({
       return;
     }
     const failures: { title: string; message: string }[] = [];
+    analyticsEvent("Bulk Reports Started", { count: targets.length });
     setBulk({
       label: "Bulk generate",
       current: 0,
@@ -268,6 +274,7 @@ export function ReportsPanel({
       }
     }
     setBulk(null);
+    analyticsEvent("Bulk Reports Finished", { count: targets.length, failed: failures.length });
     if (failures.length) {
       setError(
         `Bulk finished with ${failures.length} issue(s): ${failures.map((f) => f.title).join(", ")}`,
@@ -306,6 +313,7 @@ export function ReportsPanel({
   }
 
   async function purchase(reportId: string) {
+    analyticsEvent("Checkout Started", { reportId });
     setError(null);
     setPurchasingId(reportId);
     try {
