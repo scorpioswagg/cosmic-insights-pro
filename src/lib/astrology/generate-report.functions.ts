@@ -165,6 +165,45 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       throw new Error(msg || "Report generation failed.");
     }
 
+    // Persist the birth date/name used for this chart so the daily lifecycle
+    // worker can trigger the birthday automation without storing birth time.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await (supabaseAdmin.from("profiles") as any).upsert({
+        id: context.userId,
+        birth_date: data.chart.input.date,
+        display_name: data.chart.input.name,
+      }, { onConflict: "id" });
+    } catch (profileErr) {
+      console.warn("[generateAstroReport] lifecycle profile sync failed", profileErr);
+    }
+
+    // Fire the published Resend "report.ready" automation only after the report
+    // has been generated successfully. The email failure must never make a
+    // successfully generated report fail.
+    if (email) {
+      try {
+        const { sendResendLifecycleEvent } = await import("@/lib/email/service.server");
+        const siteUrl = process.env.SITE_URL ?? "https://mycosmicblueprint.online";
+        const pageCount = Math.max(1, (result.markdown.match(/^#{1,3}\\s/gm) ?? []).length);
+        await sendResendLifecycleEvent({
+          event: "report.ready",
+          email,
+          payload: {
+            firstName: data.chart.input.name.trim().split(/\s+/)[0] || "friend",
+            reportName: result.title,
+            orderNumber: `report-${data.reportId}-${Date.now()}`,
+            completedDate: result.generatedAt.slice(0, 10),
+            pageCount,
+            downloadLink: `${siteUrl}/#report-${data.reportId}`,
+            dashboardLink: `${siteUrl}/my-reports`,
+          },
+        });
+      } catch (emailErr) {
+        console.error("[generateAstroReport] report.ready event failed", emailErr);
+      }
+    }
+
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("admin_audit_log").insert({

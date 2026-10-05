@@ -151,6 +151,36 @@ async function sendResendEmail(args: SendArgs): Promise<EmailResult> {
   }
 }
 
+
+export type ResendLifecycleEvent =
+  | "report.ready"
+  | "contact.birthday"
+  | "user.inactive";
+
+export async function sendResendLifecycleEvent(args: {
+  event: ResendLifecycleEvent;
+  email: string;
+  payload: Record<string, string | number | boolean>;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY missing");
+  }
+
+  const resend = new Resend(apiKey);
+  const { data, error } = await resend.events.send({
+    event: args.event,
+    email: args.email,
+    payload: args.payload,
+  });
+
+  if (error) {
+    throw new Error(error.message ?? `Resend event failed: ${args.event}`);
+  }
+
+  return data;
+}
+
 // -------------------- Individual templates --------------------
 
 export function sendWelcomeEmail(to: string, firstName?: string) {
