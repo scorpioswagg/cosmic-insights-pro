@@ -175,6 +175,7 @@ export function ReportsPanel({
       });
       toast.success(`${def?.title ?? "Report"} ready`);
     } catch (e) {
+      analyticsEvent("Report Generation Failed", { reportId });
       const msg = (e as Error).message || "Report generation failed.";
       if (msg.includes("REPORT_LOCKED") || msg.includes("Purchase required")) {
         setError("This report is locked. Unlock it with Stripe, or sign in as an admin to generate free.");
@@ -207,6 +208,7 @@ export function ReportsPanel({
   const active = activeId ? reports[activeId] : null;
 
   function downloadReport(r: GeneratedReport) {
+    analyticsEvent("Report Downloaded", { format: "markdown" });
     const safe = r.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     const content = `# ${r.title}\n\nFor ${chart.input.name}\nGenerated ${new Date(r.generatedAt).toLocaleString()}\n\n---\n\n${r.markdown}`;
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
@@ -221,6 +223,7 @@ export function ReportsPanel({
   }
 
   function downloadReportPdf(r: GeneratedReport) {
+    analyticsEvent("Report PDF Downloaded", { format: "pdf" });
     downloadLuxuryReportPdf(r, chart, partnerChart);
   }
 
@@ -233,6 +236,7 @@ export function ReportsPanel({
       return;
     }
     const failures: { title: string; message: string }[] = [];
+    analyticsEvent("Bulk Reports Started", { count: targets.length });
     setBulk({
       label: "Bulk generate",
       current: 0,
@@ -270,6 +274,7 @@ export function ReportsPanel({
       }
     }
     setBulk(null);
+    analyticsEvent("Bulk Reports Finished", { count: targets.length, failed: failures.length });
     if (failures.length) {
       setError(
         `Bulk finished with ${failures.length} issue(s): ${failures.map((f) => f.title).join(", ")}`,
@@ -308,6 +313,7 @@ export function ReportsPanel({
   }
 
   async function purchase(reportId: string) {
+    analyticsEvent("Checkout Started", { reportId });
     setError(null);
     setPurchasingId(reportId);
     try {
