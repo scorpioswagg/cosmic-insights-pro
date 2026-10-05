@@ -190,6 +190,7 @@ export const generateAstroReport = createServerFn({ method: "POST" })
           event: "report.ready",
           email,
           payload: {
+            firstName: data.chart.input.name.trim().split(/\s+/)[0] || "friend",
             reportName: result.title,
             orderNumber: `report-${data.reportId}-${Date.now()}`,
             completedDate: result.generatedAt.slice(0, 10),
