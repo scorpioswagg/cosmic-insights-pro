@@ -23,8 +23,78 @@ export function createDirectGeminiProvider(apiKey: string) {
   });
 }
 
-/** Default flash model for direct Gemini calls (Gemini 3.8 Flash). */
-export const DIRECT_GEMINI_MODEL = "gemini-3.8-flash";
+/** Default free-tier Google AI Studio model (override with GEMINI_MODEL). */
+export const DIRECT_GEMINI_MODEL = "gemini-2.5-flash";
+
+type AnyModel = any;
+
+function statusOf(err: unknown): number | undefined {
+  const e = err as { statusCode?: number; status?: number; cause?: { statusCode?: number } };
+  return e?.statusCode ?? e?.status ?? e?.cause?.statusCode;
+}
+
+function retryAfterMs(err: unknown): number | null {
+  const h = (err as { responseHeaders?: Record<string, string> })?.responseHeaders;
+  const v = h?.["retry-after"];
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) ? Math.min(n * 1000, 60_000) : null;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function callWithRetry<T>(fn: () => Promise<T>, label: string, attempts = 4): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const s = statusOf(err);
+      const retryable = s === 429 || (s !== undefined && s >= 500);
+      if (!retryable || i === attempts - 1) throw err;
+      const wait = retryAfterMs(err) ?? Math.min(2000 * 2 ** i, 30_000) + Math.random() * 1000;
+      console.warn(`[ai-gateway] ${label} ${s}; retrying in ${Math.round(wait)}ms`);
+      await sleep(wait);
+    }
+  }
+  throw lastErr;
+}
+
+/** Wrap a model with bounded 429/5xx retry + pacing. */
+function withRetry(model: AnyModel): AnyModel {
+  return new Proxy(model, {
+    get(target, prop, recv) {
+      if (prop === "doGenerate" || prop === "doStream") {
+        return (opts: unknown) =>
+          callWithRetry(() => target[prop](opts), `${target.provider}:${String(prop)}`);
+      }
+      return Reflect.get(target, prop, recv);
+    },
+  });
+}
+
+/** Try primary (with retry); on any failure fall back to secondary (with retry). */
+function withFallback(primary: AnyModel, secondary: AnyModel): AnyModel {
+  const p = withRetry(primary);
+  const s = withRetry(secondary);
+  return new Proxy(primary, {
+    get(target, prop, recv) {
+      if (prop === "doGenerate" || prop === "doStream") {
+        return async (opts: unknown) => {
+          try {
+            return await p[prop](opts);
+          } catch (err) {
+            console.warn(
+              `[ai-gateway] ${target.provider} failed (${statusOf(err) ?? "error"}); falling back to ${secondary.provider}`,
+            );
+            return s[prop](opts);
+          }
+        };
+      }
+      return Reflect.get(target, prop, recv);
+    },
+  });
+}
 
 /** Model id used when talking to the Lovable AI Gateway. */
 export const LOVABLE_GATEWAY_MODEL = "google/gemini-3.8-flash";
@@ -121,13 +191,24 @@ export function resolveWritingModel(): LanguageModel {
     forced: process.env.AI_PROVIDER?.trim() || null,
   });
 
+  const groqKey = resolveGroqApiKey();
+  const geminiKey = resolveGeminiApiKey();
+  const forced = process.env.AI_PROVIDER?.trim().toLowerCase();
+
+  // Dual provider: Gemini (1M TPM free) first, Groq as automatic fallback.
+  if (geminiKey && groqKey && !forced) {
+    return withFallback(
+      createDirectGeminiProvider(geminiKey)(geminiModelId()),
+      createGroqProvider(groqKey)(groqModelId()),
+    );
+  }
+
   if (provider === "groq") {
-    return createGroqProvider(resolveGroqApiKey()!)(groqModelId());
+    return withRetry(createGroqProvider(groqKey!)(groqModelId()));
   }
 
   if (provider === "gemini-direct") {
-    const key = resolveGeminiApiKey()!;
-    return createDirectGeminiProvider(key)(geminiModelId());
+    return withRetry(createDirectGeminiProvider(geminiKey!)(geminiModelId()));
   }
 
   if (provider === "lovable-gateway") {
