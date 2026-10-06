@@ -10,6 +10,8 @@ interface ChatMsg {
   content: string;
 }
 
+const BOOKING_EMAIL = "kyle.merritt@mycosmicblueprint.online";
+
 /** Live reading booking CTA for the Academy page. */
 export function BookReadingSection() {
   return (
@@ -31,13 +33,13 @@ export function BookReadingSection() {
         </li>
         <li className="flex gap-2">
           <span className="text-gold">3.</span> Email{" "}
-          <span className="text-foreground">swaggersofyne@gmail.com</span> with your preferred dates and
+          <span className="text-foreground">{BOOKING_EMAIL}</span> with your preferred dates and
           report titles.
         </li>
       </ul>
       <div className="mt-5 flex flex-wrap gap-3">
         <a
-          href="mailto:swaggersofyne@gmail.com?subject=Cosmic%20Blueprint%20Reading%20Booking"
+          href={`mailto:${BOOKING_EMAIL}?subject=Cosmic%20Blueprint%20Reading%20Booking`}
           className="inline-flex items-center px-5 py-2.5 rounded-xl bg-gold text-primary-foreground text-xs uppercase tracking-widest hover:opacity-95 transition"
         >
           Email to book
