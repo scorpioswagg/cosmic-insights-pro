@@ -1,9 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { useServerFn } from "@tanstack/react-start";
-import { askAcademy } from "@/lib/academy/chat.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useMemo, useState } from "react";
+import { AssistantChat, BookReadingSection } from "@/components/academy/TutorAndBooking";
 import {
   ASPECTS,
   GLOSSARY,
@@ -186,6 +183,8 @@ function Academy() {
             )}
           </div>
         </section>
+
+        <BookReadingSection />
 
         <AssistantChat />
 
@@ -465,87 +464,58 @@ function LessonAspects() {
   return (
     <Prose>
       <p>
-        Planets in your chart talk to each other through <strong className="text-gold">aspects</strong> —
-        specific angles between them. Aspects are how your inner planets argue, agree, or collaborate.
+        <strong className="text-gold">Aspects</strong> are the angles between planets. They describe
+        the conversation — harmony, tension, or opportunity — between two parts of you.
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
         {ASPECTS.map((a) => (
           <div key={a.name} className="rounded-xl border border-border/40 bg-card/50 p-4">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl text-gold">{a.glyph}</span>
-                <span className="font-display text-lg">{a.name}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl text-gold">{a.glyph}</span>
+              <div>
+                <div className="font-medium">{a.name}</div>
+                <div className="text-xs text-muted-foreground">{a.degrees} · {a.vibe}</div>
               </div>
-              <span className="text-xs text-muted-foreground">{a.angle}°</span>
             </div>
-            <div className={`text-xs mt-1 uppercase tracking-wider ${
-              a.vibe === "harmony" ? "text-emerald-300" : a.vibe === "tension" ? "text-rose-300" : "text-muted-foreground"
-            }`}>{a.vibe}</div>
-            <p className="text-sm mt-2 text-foreground/90">{a.meaning}</p>
-            <p className="text-xs mt-2 text-muted-foreground italic">{a.example}</p>
-            <AspectDiagram angle={a.angle} />
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{a.meaning}</p>
+            <p className="text-xs text-gold/80 mt-1">{a.example}</p>
           </div>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">
-        Tight aspects (small <strong>orb</strong>, meaning very close to the exact angle) are
-        strongest. A 0.5° conjunction is louder than a 7° one.
-      </p>
     </Prose>
   );
 }
 
 function LessonAngles() {
-  const angles = [
-    { name: "Ascendant (Rising)", code: "ASC", body: "The sign rising on the eastern horizon at your birth. Your social mask, first impressions, your body's vibe. People meet your Rising before they meet your Sun." },
-    { name: "Midheaven (MC)", code: "MC", body: "The highest point in your chart. Public reputation, vocation, what you're known for, your long-term life direction." },
-    { name: "Descendant (DSC)", code: "DSC", body: "Opposite the Ascendant. The qualities you outsource to partners — what you're attracted to, the mirror you keep meeting." },
-    { name: "IC (Imum Coeli)", code: "IC", body: "The bottom of the chart, opposite the Midheaven. Your private foundation: roots, ancestry, the home you return to when no one is watching." },
-  ];
   return (
     <Prose>
       <p>
-        The four <strong className="text-gold">angles</strong> are the most personal points in your
-        chart. They're determined entirely by your exact birth time and location — which is why
-        precision matters so much.
+        Four special points on the chart circle act as doorways. They need your exact birth time.
       </p>
-      <div className="grid md:grid-cols-2 gap-3">
-        {angles.map((a) => (
-          <div key={a.code} className="rounded-xl border border-border/40 bg-card/50 p-4">
-            <div className="flex items-baseline gap-2">
-              <span className="text-gold font-display text-xl">{a.code}</span>
-              <span className="font-medium">{a.name}</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{a.body}</p>
-          </div>
-        ))}
+      <div className="grid md:grid-cols-2 gap-4">
+        <InfoCard title="Ascendant (Rising)" body="The sign rising on the eastern horizon at birth. Your first impression, body language, and the mask you wear in new rooms." />
+        <InfoCard title="Descendant" body="Opposite the Ascendant. The kind of partner or counterpart you attract — and the qualities you project onto others." />
+        <InfoCard title="Midheaven (MC)" body="The highest point. Career reputation, public image, and the role you grow into over decades." />
+        <InfoCard title="Imum Coeli (IC)" body="Opposite the MC. Roots, family, private self, and the emotional basement of the chart." />
       </div>
+      <p className="text-sm text-muted-foreground">
+        Without birth time, we can still interpret planets in signs and most aspects. Houses and angles stay approximate.
+      </p>
     </Prose>
   );
 }
 
 function LessonSpecial() {
-  const points = [
-    { n: "North Node", body: "Your growth edge in this lifetime — qualities your soul is here to develop. Often uncomfortable at first, then liberating." },
-    { n: "South Node", body: "Familiar territory from the past. Easy to lean on, but limiting if overused." },
-    { n: "Chiron", body: "The wounded healer. A wound — often inherited — that becomes your medicine for others." },
-    { n: "Black Moon Lilith", body: "The wild, unapologetic feminine. What gets shamed or exiled and refuses to be tamed." },
-    { n: "Part of Fortune", body: "A calculated point (Asc + Moon − Sun) showing where joy, ease, and well-being flow most naturally." },
-    { n: "Vertex", body: "A 'fate point' — often activated by pivotal meetings and turning points you didn't see coming." },
-  ];
   return (
     <Prose>
       <p>
-        Beyond the planets, astrologers track <strong className="text-gold">special points</strong> that
-        add psychological and spiritual nuance.
+        Beyond the ten planets, a few extra points show up in Cosmic Blueprint reports.
       </p>
-      <div className="grid md:grid-cols-2 gap-3">
-        {points.map((p) => (
-          <div key={p.n} className="rounded-xl border border-border/40 bg-card/50 p-4">
-            <div className="text-gold font-medium">{p.n}</div>
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{p.body}</p>
-          </div>
-        ))}
+      <div className="grid md:grid-cols-2 gap-4">
+        <InfoCard title="North Node" body="Your growth edge this lifetime — the unfamiliar skill the chart is pushing you toward." />
+        <InfoCard title="South Node" body="Comfort-zone talent you already mastered. Useful, but over-relying on it stalls growth." />
+        <InfoCard title="Chiron" body="The wound that becomes a gift. Where you heal others by healing yourself." />
+        <InfoCard title="Lilith (Black Moon)" body="Raw instinct, refusal to be tamed, and the parts of desire culture tries to shame." />
       </div>
     </Prose>
   );
@@ -555,31 +525,18 @@ function LessonPutTogether() {
   return (
     <Prose>
       <p>
-        Let's walk through a real sample chart, one placement at a time. Notice how each layer
-        sharpens the picture.
+        Reading a full chart is pattern recognition, not a laundry list. Start with the big three,
+        then layer houses and aspects.
       </p>
-      <div className="rounded-xl border border-border/40 bg-card/50 p-5 space-y-3">
-        <h4 className="font-display text-lg text-gradient-gold">Sample: "Alex" — Oct 25, 1984, 4:30 PM, Boulder CO</h4>
-        <ul className="space-y-2 text-sm">
-          <li><span className="text-gold">☉ Sun in Scorpio (8th House):</span> Identity forged through depth, taboo, and rebirth.</li>
-          <li><span className="text-gold">☽ Moon in Aquarius (11th House):</span> Emotional life finds safety in groups, causes, and unconventional friendships.</li>
-          <li><span className="text-gold">↑ Aries Ascendant:</span> First impression is bold, direct, a little impatient.</li>
-          <li><span className="text-gold">♀ Venus in Sagittarius (9th House):</span> Loves freedom, foreign cultures, philosophy in their romance.</li>
-          <li><span className="text-gold">♂ Mars in Capricorn (10th House):</span> Channels drive into long-haul career ambition.</li>
-          <li><span className="text-gold">Sun ☌ Pluto:</span> Identity and personal power are fused — intense presence, can't fake it.</li>
-          <li><span className="text-gold">Moon □ Saturn:</span> Emotional restraint, fear of being too much; matures into deep steadiness.</li>
-        </ul>
-        <p className="text-sm text-muted-foreground italic mt-2">
-          Synthesis: Alex is a deep Scorpio soul wearing an Aries mask — bold on the outside,
-          excavating on the inside. Their friends are their chosen family (Moon 11th), they build
-          career like a Capricorn ant (Mars 10th), and their love for adventure (Venus Sag 9th) keeps
-          life from getting too heavy. The Sun-Pluto conjunction gives gravitas; the Moon-Saturn
-          square makes the gravitas hard-won.
-        </p>
-      </div>
+      <ol className="list-decimal list-inside space-y-2 text-sm">
+        <li><strong className="text-gold">Sun</strong> — core identity and life direction.</li>
+        <li><strong className="text-gold">Moon</strong> — emotional needs and private self.</li>
+        <li><strong className="text-gold">Rising</strong> — how you enter the room.</li>
+        <li>Strongest aspects (tight orbs, personal planets) — the plot twists.</li>
+        <li>Angular houses (1, 4, 7, 10) — high-visibility life arenas.</li>
+      </ol>
       <p className="text-sm text-muted-foreground">
-        That's it. Layer by layer, the chart starts to feel like a person. When you read your own,
-        do the same thing — one placement, then the next, then how they relate.
+        Your written Cosmic Blueprint reports already do this stacking for you. The Academy teaches you to verify and deepen what the AI wrote.
       </p>
     </Prose>
   );
@@ -589,40 +546,27 @@ function LessonReadingReports() {
   return (
     <Prose>
       <p>
-        Every Cosmic Blueprint report is built from your actual chart data. Here's how to get the
-        most from each one.
+        Cosmic Blueprint reports are chaptered evidence, not vague horoscopes. Each chapter cites
+        real placements from Swiss Ephemeris.
       </p>
-      <div className="space-y-3 text-sm">
-        <Tip n="1" t="Notice the placements named in each paragraph"
-          body="When you see 'your Moon in Cancer in the 4th House,' that's the planet + sign + house formula in action. The interpretation around it is unique to you." />
-        <Tip n="2" t="Read symbols as shorthand"
-          body="☉ Sun · ☽ Moon · ☿ Mercury · ♀ Venus · ♂ Mars · ♃ Jupiter · ♄ Saturn · ♅ Uranus · ♆ Neptune · ♇ Pluto. ☌ conjunction, ☍ opposition, □ square, △ trine, ✱ sextile." />
-        <Tip n="3" t="Houses shift the meaning"
-          body="The same planet/sign reads differently depending on the house. Saturn in the 7th = lessons through partnership. Saturn in the 10th = lessons through career." />
-        <Tip n="4" t="Aspects modify everything"
-          body="A harmonious trine softens a tough placement. A square gives it teeth. Read placements with their aspects, not in isolation." />
-        <Tip n="5" t="Hold the contradictions"
-          body="Real charts contain tension. If two sections seem to disagree, you probably contain both. That's not a bug — that's a human." />
-        <Tip n="6" t="Use it as a mirror, not a verdict"
-          body="Astrology describes potentials and patterns. You always have choice." />
-      </div>
-      <div className="rounded-xl border border-gold/40 bg-gradient-to-br from-gold/10 to-accent/10 p-4 text-center">
-        <p className="text-sm">You've got the toolkit. Ready to generate your first report?</p>
-        <Link to="/" className="inline-block mt-3 text-xs uppercase tracking-wider px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition">
-          Calculate my chart →
-        </Link>
-      </div>
+      <ul className="list-disc list-inside space-y-2 text-sm">
+        <li>Read the placement first, then the interpretation.</li>
+        <li>If something feels off, check birth time — houses move fast.</li>
+        <li>Download the PDF after generation so you keep a permanent copy.</li>
+        <li>For relationship work, run partner charts and synastry reports before a live reading.</li>
+      </ul>
+      <p className="text-sm text-muted-foreground">
+        Ready for a human conversation? Use the Book a Reading section below, or ask the tutor how to prepare.
+      </p>
     </Prose>
   );
 }
-
-/* ----------------------------- Small primitives --------------------------- */
 
 function InfoCard({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-xl border border-border/40 bg-card/50 p-4">
       <div className="text-gold text-sm font-medium">{title}</div>
-      <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{body}</div>
+      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{body}</p>
     </div>
   );
 }
@@ -631,77 +575,25 @@ function KV({ k, v }: { k: string; v: string }) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div>
-      <div className="text-foreground/90">{v}</div>
+      <div className="text-sm">{v}</div>
     </div>
   );
 }
 
 function ComboExample({ p, s, h, reading }: { p: string; s: string; h: string; reading: string }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-card/50 p-4">
-      <div className="text-sm">
-        <span className="text-gold">{p}</span> in <span className="text-gold">{s}</span> in the{" "}
-        <span className="text-gold">{h}</span>
-      </div>
-      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{reading}</p>
+    <div className="rounded-xl border border-border/40 bg-card/50 p-4 text-sm">
+      <div className="text-gold font-medium">{p} in {s} · {h}</div>
+      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{reading}</p>
     </div>
-  );
-}
-
-function Tip({ n, t, body }: { n: string; t: string; body: string }) {
-  return (
-    <div className="flex gap-3 rounded-xl border border-border/40 bg-card/50 p-3">
-      <div className="w-7 h-7 shrink-0 rounded-full bg-gold/20 border border-gold/40 text-gold flex items-center justify-center text-sm font-display">{n}</div>
-      <div>
-        <div className="text-sm font-medium text-foreground">{t}</div>
-        <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{body}</div>
-      </div>
-    </div>
-  );
-}
-
-function AspectDiagram({ angle }: { angle: number }) {
-  const cx = 40, cy = 40, r = 30;
-  const a1 = (-90 * Math.PI) / 180;
-  const a2 = ((-90 + angle) * Math.PI) / 180;
-  const p1 = { x: cx + r * Math.cos(a1), y: cy + r * Math.sin(a1) };
-  const p2 = { x: cx + r * Math.cos(a2), y: cy + r * Math.sin(a2) };
-  return (
-    <svg viewBox="0 0 80 80" className="w-20 h-20 mt-3 mx-auto">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="currentColor" strokeOpacity="0.25" />
-      <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="currentColor" className="text-gold" strokeWidth="1.2" />
-      <circle cx={p1.x} cy={p1.y} r="2.5" className="fill-gold" />
-      <circle cx={p2.x} cy={p2.y} r="2.5" className="fill-gold" />
-    </svg>
   );
 }
 
 function SampleChartIllustration() {
-  // Decorative 12-spoke wheel
   return (
-    <div className="flex justify-center pt-2">
-      <svg viewBox="0 0 200 200" className="w-56 h-56 text-gold/80">
-        <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" strokeOpacity="0.5" />
-        <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeOpacity="0.3" />
-        {Array.from({ length: 12 }).map((_, i) => {
-          const a = (i * 30 - 90) * Math.PI / 180;
-          return (
-            <line key={i}
-              x1={100 + 60 * Math.cos(a)} y1={100 + 60 * Math.sin(a)}
-              x2={100 + 90 * Math.cos(a)} y2={100 + 90 * Math.sin(a)}
-              stroke="currentColor" strokeOpacity="0.5" />
-          );
-        })}
-        {SIGNS.map((s, i) => {
-          const a = (i * 30 + 15 - 90) * Math.PI / 180;
-          return (
-            <text key={s.name} x={100 + 75 * Math.cos(a)} y={100 + 75 * Math.sin(a)}
-              textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="currentColor">
-              {s.glyph}
-            </text>
-          );
-        })}
-      </svg>
+    <div className="rounded-xl border border-gold/30 bg-card/40 p-5 text-center text-sm text-muted-foreground">
+      Imagine a circle divided into 12 houses, with planets plotted by sign degree.
+      That frozen sky-map is your natal chart — the raw data every Cosmic Blueprint report is built on.
     </div>
   );
 }
@@ -710,36 +602,42 @@ function SampleChartIllustration() {
 
 function Quiz({ id, questions }: { id: string; questions: QuizQuestion[] }) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  if (questions.length === 0) return null;
-  const score = Object.entries(answers).filter(([i, a]) => questions[Number(i)].answer === a).length;
+  if (!questions.length) return null;
+
   const all = Object.keys(answers).length === questions.length;
+  const score = questions.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
+
   return (
-    <div className="rounded-xl border border-accent/30 bg-accent/5 p-5">
-      <div className="flex items-baseline justify-between mb-4">
-        <h4 className="font-display text-lg text-gradient-gold">Knowledge check</h4>
-        <span className="text-xs text-muted-foreground">{Object.keys(answers).length} / {questions.length} answered</span>
-      </div>
+    <div className="rounded-xl border border-gold/20 bg-card/40 p-5">
+      <p className="text-xs uppercase tracking-[0.3em] text-gold mb-3">Quick check</p>
       <div className="space-y-5">
-        {questions.map((q, i) => {
-          const picked = answers[i];
-          const correct = picked !== undefined && picked === q.answer;
+        {questions.map((q, qi) => {
+          const picked = answers[qi];
+          const correct = picked === q.correct;
           return (
-            <div key={i}>
-              <div className="text-sm font-medium mb-2">{i + 1}. {q.q}</div>
-              <div className="grid gap-1.5">
+            <div key={qi}>
+              <div className="text-sm font-medium mb-2">{q.q}</div>
+              <div className="space-y-1.5">
                 {q.choices.map((c, ci) => {
-                  const isPick = picked === ci;
-                  const isAns = q.answer === ci;
-                  const show = picked !== undefined;
+                  const selected = picked === ci;
+                  let cls = "text-left w-full text-xs px-3 py-2 rounded-md border transition ";
+                  if (picked === undefined) {
+                    cls += "border-border/40 hover:border-gold/40 text-muted-foreground hover:text-foreground";
+                  } else if (ci === q.correct) {
+                    cls += "border-emerald-500/50 bg-emerald-500/10 text-emerald-200";
+                  } else if (selected) {
+                    cls += "border-rose-500/50 bg-rose-500/10 text-rose-200";
+                  } else {
+                    cls += "border-border/30 text-muted-foreground/60";
+                  }
                   return (
-                    <button key={ci}
-                      onClick={() => setAnswers((p) => ({ ...p, [i]: ci }))}
+                    <button
+                      key={ci}
+                      type="button"
                       disabled={picked !== undefined}
-                      className={`text-left text-sm px-3 py-2 rounded-md border transition ${
-                        show && isAns ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-100" :
-                        show && isPick && !correct ? "border-rose-400/60 bg-rose-400/10 text-rose-100" :
-                        "border-border/40 bg-card/40 hover:border-gold/40"
-                      }`}>
+                      onClick={() => setAnswers((a) => ({ ...a, [qi]: ci }))}
+                      className={cls}
+                    >
                       {c}
                     </button>
                   );
@@ -761,121 +659,5 @@ function Quiz({ id, questions }: { id: string; questions: QuizQuestion[] }) {
         </div>
       )}
     </div>
-  );
-}
-
-/* ----------------------------- AI Assistant ------------------------------- */
-
-interface ChatMsg { role: "user" | "assistant"; content: string; }
-
-function AssistantChat() {
-  const ask = useServerFn(askAcademy);
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    { role: "assistant", content: "Hi! I'm your astrology tutor. Ask me anything — 'What does my Moon sign mean?', 'Why is my Rising Sign important?', 'What is a square aspect?'" },
-  ]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, busy]);
-
-  const suggestions = [
-    "What does my Moon sign mean?",
-    "Why is my Rising Sign important?",
-    "What is a square aspect?",
-    "What are the houses?",
-    "Why do I need my exact birth time?",
-  ];
-
-  async function send(q: string) {
-    const question = q.trim();
-    if (!question || busy) return;
-    setError(null);
-    setMessages((m) => [...m, { role: "user", content: question }]);
-    setInput("");
-    setBusy(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session || sessionData.session.user.is_anonymous) {
-        throw new Error("Please sign in with Google to chat with the tutor.");
-      }
-      const history = messages.slice(-8);
-      const res = await ask({ data: { question, history } });
-      setMessages((m) => [...m, { role: "assistant", content: res.answer }]);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section className="mt-20 glass rounded-2xl p-6 md:p-8 shadow-deep">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-gold">AI Astrology Tutor</p>
-          <h2 className="font-display text-2xl text-gradient-gold mt-1">Ask anything</h2>
-        </div>
-        <span className="text-xs text-muted-foreground">Beginner-friendly answers</span>
-      </div>
-
-      <div className="mt-4 space-y-3 max-h-96 overflow-y-auto pr-1">
-        {messages.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-              m.role === "user"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card/70 border border-border/40 text-foreground"
-            }`}>
-              {m.role === "assistant"
-                ? <div className="prose prose-invert prose-sm max-w-none"><ReactMarkdown>{m.content}</ReactMarkdown></div>
-                : m.content}
-            </div>
-          </div>
-        ))}
-        {busy && (
-          <div className="flex justify-start">
-            <div className="bg-card/70 border border-border/40 rounded-2xl px-4 py-2.5 text-sm text-muted-foreground">
-              Thinking…
-            </div>
-          </div>
-        )}
-        <div ref={endRef} />
-      </div>
-
-      {messages.length <= 1 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {suggestions.map((s) => (
-            <button key={s} onClick={() => send(s)}
-              className="text-xs px-3 py-1.5 rounded-full border border-border/50 text-muted-foreground hover:text-gold hover:border-gold/40 transition">
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {error && <div className="mt-3 text-xs text-destructive">{error}</div>}
-
-      <form
-        onSubmit={(e) => { e.preventDefault(); send(input); }}
-        className="mt-4 flex gap-2"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your question…"
-          className="cosmic-input flex-1"
-          disabled={busy}
-        />
-        <button type="submit" disabled={busy || !input.trim()}
-          className="px-5 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-60 text-sm uppercase tracking-wider">
-          Ask
-        </button>
-      </form>
-    </section>
   );
 }
