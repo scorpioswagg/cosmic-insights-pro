@@ -42,10 +42,19 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const msg = error instanceof Error ? error.message : String(error);
+
+  // React 19 hydration notices are self-healing (React recovers by client
+  // rendering) — never trap them in the error boundary.
+  const isHydrationNotice = /hydrat/i.test(msg);
+
   useEffect(() => {
-    const msg = error instanceof Error ? error.message : String(error);
+    if (isHydrationNotice) {
+      reset();
+      return;
+    }
     // Stale page after an app update: reload once to fetch the fresh files.
-    if (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(msg)) {
+    if (/dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch/i.test(msg)) {
       const key = "cb-chunk-reload";
       const last = Number(sessionStorage.getItem(key) || 0);
       if (Date.now() - last > 30_000) {
@@ -55,7 +64,9 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
       }
     }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+  }, [error, isHydrationNotice, reset]);
+
+  if (isHydrationNotice) return null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
