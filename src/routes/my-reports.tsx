@@ -36,8 +36,17 @@ export const Route = createFileRoute("/my-reports")({
           {needsAuth ? "Sign in to see the reports you own." : msg}
         </p>
         <div className="flex justify-center gap-3">
-          <Link to="/"><Button variant="outline">Go to sign in</Button></Link>
-          <Button onClick={() => { reset(); router.invalidate(); }}>Retry</Button>
+          <Link to="/">
+            <Button variant="outline">Go to sign in</Button>
+          </Link>
+          <Button
+            onClick={() => {
+              reset();
+              router.invalidate();
+            }}
+          >
+            Retry
+          </Button>
         </div>
       </main>
     );
@@ -62,32 +71,40 @@ function MyReportsPage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             Everything you own. Generate any unlocked report from your chart page.
+            For saved people and PDF downloads of generated readings, open your{" "}
+            <Link to="/dashboard" className="text-primary underline-offset-2 hover:underline">
+              Dashboard
+            </Link>
+            .
           </p>
         </div>
-        <Link to="/"><Button variant="outline">Back to my chart</Button></Link>
+        <div className="flex gap-2">
+          <Link to="/dashboard">
+            <Button variant="secondary">Dashboard</Button>
+          </Link>
+          <Link to="/">
+            <Button variant="outline">Back to chart</Button>
+          </Link>
+        </div>
       </div>
 
-      {data?.isAdmin && (
-        <p className="mb-6 rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-          Administrator account — every report is unlocked for you.
+      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+
+      {!isLoading && (data?.items?.length ?? 0) === 0 && (
+        <p className="text-sm text-muted-foreground rounded-md border p-4">
+          You do not have any unlocked reports yet. Purchase a reading or generate a free one from
+          the chart page.
         </p>
       )}
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading your library…</p>
-      ) : (data?.items.length ?? 0) === 0 ? (
-        <div className="rounded-lg border p-8 text-center">
-          <p className="mb-4 text-muted-foreground">
-            You don&rsquo;t own any paid reports yet.
-          </p>
-          <Link to="/"><Button>Browse the report catalog</Button></Link>
-        </div>
-      ) : (
+      {(data?.items?.length ?? 0) > 0 && (
         <ul className="grid gap-3 sm:grid-cols-2">
           {data!.items.map((item) => (
-            <li key={item.reportId} className="rounded-lg border p-4">
+            <li key={item.reportId} className="rounded-md border p-4">
               <div className="flex items-start gap-3">
-                <span aria-hidden className="text-xl">{item.icon}</span>
+                <span aria-hidden className="text-xl">
+                  {item.icon}
+                </span>
                 <div className="min-w-0">
                   <p className="font-medium">{item.title}</p>
                   <p className="text-xs text-muted-foreground">{item.tagline}</p>
@@ -97,7 +114,9 @@ function MyReportsPage() {
                 </div>
               </div>
               <Link to="/" hash={`report-${item.reportId}`}>
-                <Button size="sm" className="mt-3 w-full">Open report</Button>
+                <Button size="sm" className="mt-3 w-full">
+                  Open report
+                </Button>
               </Link>
             </li>
           ))}
