@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { geocodePlace, type GeocodeResult } from "@/lib/astrology/geocoding";
 import type { BirthInput } from "@/lib/astrology/types";
 import { KYLE_MERRITT_INPUT } from "@/lib/astrology/validation";
@@ -6,21 +6,42 @@ import { KYLE_MERRITT_INPUT } from "@/lib/astrology/validation";
 interface Props {
   onSubmit: (input: BirthInput) => void;
   busy?: boolean;
-  /** When false, the form is locked and prompts the visitor to sign in. */
   isAuthed?: boolean;
-  /** Admin-only convenience: prefill the validation chart. */
   showSample?: boolean;
   onSignIn?: () => void;
-  /** Heading shown at the top of the form. */
   title?: string;
-  /** Submit button label when idle and authenticated. */
   submitLabel?: string;
-  /** Label for the name field. */
   nameLabel?: string;
-  /** Hide the long "How to fill this out" guide (used for the partner form). */
   hideGuide?: boolean;
-  /** Renders as a plain block instead of a glass card. */
   bare?: boolean;
+  seed?: BirthInput | null;
+}
+
+function parseSeedIntoFields(seed: BirthInput) {
+  const [y, m, d] = seed.date.split("-");
+  const [hhRaw, mmRaw] = (seed.time || "12:00").split(":").map((v) => parseInt(v, 10));
+  const hh = Number.isFinite(hhRaw) ? hhRaw : 12;
+  const mm = Number.isFinite(mmRaw) ? mmRaw : 0;
+  const isPM = hh >= 12;
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  return {
+    name: seed.name,
+    year: y || "",
+    month: m ? String(parseInt(m, 10)) : "",
+    day: d ? String(parseInt(d, 10)) : "",
+    hour: seed.timeUnknown ? "" : String(h12),
+    minute: seed.timeUnknown ? "" : String(mm).padStart(2, "0"),
+    meridiem: (isPM ? "PM" : "AM") as "AM" | "PM",
+    timeUnknown: !!seed.timeUnknown,
+    place: seed.place,
+    picked: {
+      name: seed.place,
+      country: "",
+      latitude: seed.latitude,
+      longitude: seed.longitude,
+      timezone: seed.timezone,
+    } as GeocodeResult,
+  };
 }
 
 export function BirthForm({
@@ -34,20 +55,39 @@ export function BirthForm({
   nameLabel = "Full Name",
   hideGuide = false,
   bare = false,
+  seed = null,
 }: Props) {
-  const [name, setName] = useState("");
-  const [month, setMonth] = useState("");
-  const [day, setDay] = useState("");
-  const [year, setYear] = useState("");
-  const [hour, setHour] = useState("");
-  const [minute, setMinute] = useState("");
-  const [meridiem, setMeridiem] = useState<"AM" | "PM">("AM");
-  const [timeUnknown, setTimeUnknown] = useState(false);
-  const [place, setPlace] = useState("");
+  const initial = seed ? parseSeedIntoFields(seed) : null;
+  const [name, setName] = useState(initial?.name ?? "");
+  const [month, setMonth] = useState(initial?.month ?? "");
+  const [day, setDay] = useState(initial?.day ?? "");
+  const [year, setYear] = useState(initial?.year ?? "");
+  const [hour, setHour] = useState(initial?.hour ?? "");
+  const [minute, setMinute] = useState(initial?.minute ?? "");
+  const [meridiem, setMeridiem] = useState<"AM" | "PM">(initial?.meridiem ?? "AM");
+  const [timeUnknown, setTimeUnknown] = useState(initial?.timeUnknown ?? false);
+  const [place, setPlace] = useState(initial?.place ?? "");
   const [results, setResults] = useState<GeocodeResult[]>([]);
-  const [picked, setPicked] = useState<GeocodeResult | null>(null);
+  const [picked, setPicked] = useState<GeocodeResult | null>(initial?.picked ?? null);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!seed) return;
+    const f = parseSeedIntoFields(seed);
+    setName(f.name);
+    setYear(f.year);
+    setMonth(f.month);
+    setDay(f.day);
+    setHour(f.hour);
+    setMinute(f.minute);
+    setMeridiem(f.meridiem);
+    setTimeUnknown(f.timeUnknown);
+    setPlace(f.place);
+    setPicked(f.picked);
+    setResults([]);
+    setError(null);
+  }, [seed]);
 
   async function searchPlace() {
     if (!place.trim()) return;
@@ -132,10 +172,7 @@ export function BirthForm({
 
   const steps = [
     { label: "Name", done: name.trim().length > 0 },
-    {
-      label: "Date",
-      done: !!month && !!day && year.length === 4,
-    },
+    { label: "Date", done: !!month && !!day && year.length === 4 },
     { label: "Time", done: timeUnknown || (!!hour && !!minute) },
     { label: "Place", done: !!picked },
   ];
@@ -146,11 +183,7 @@ export function BirthForm({
   return (
     <form
       onSubmit={submit}
-      className={
-        bare
-          ? "space-y-5"
-          : "glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep"
-      }
+      className={bare ? "space-y-5" : "glass rounded-2xl p-6 md:p-8 space-y-5 shadow-deep"}
     >
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl text-gradient-gold">{title}</h2>
@@ -168,10 +201,7 @@ export function BirthForm({
           <span className={ready ? "text-gold" : ""}>{pct}%</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gold transition-all duration-300"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full rounded-full bg-gold transition-all duration-300" style={{ width: `${pct}%` }} />
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           {steps.map((s) => (
@@ -189,11 +219,8 @@ export function BirthForm({
             account to calculate your natal chart and unlock the report library.
           </p>
           {onSignIn && (
-            <button
-              type="button"
-              onClick={onSignIn}
-              className="text-xs uppercase tracking-widest px-4 py-2 rounded-md bg-gold text-primary-foreground hover:opacity-90 transition"
-            >
+            <button type="button" onClick={onSignIn}
+              className="text-xs uppercase tracking-widest px-4 py-2 rounded-md bg-gold text-primary-foreground hover:opacity-90 transition">
               Sign in / Sign up
             </button>
           )}
@@ -244,12 +271,8 @@ export function BirthForm({
           </select>
         </div>
         <label className="mt-3 flex items-start gap-3 cursor-pointer select-none rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 hover:border-gold/40 transition">
-          <input
-            type="checkbox"
-            checked={timeUnknown}
-            onChange={(e) => setTimeUnknown(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gold/50 accent-[var(--gold)]"
-          />
+          <input type="checkbox" checked={timeUnknown} onChange={(e) => setTimeUnknown(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gold/50 accent-[var(--gold)]" />
           <span className="text-sm leading-relaxed">
             <span className="font-medium text-foreground">I don't know my exact birth time</span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
@@ -299,11 +322,7 @@ export function BirthForm({
 
       <button type="submit" disabled={busy || !isAuthed}
         className="w-full py-3 rounded-xl bg-gold text-primary-foreground font-display tracking-wider uppercase shadow-gold hover:opacity-95 transition disabled:opacity-50">
-        {busy
-          ? "Consulting the heavens…"
-          : isAuthed
-            ? submitLabel
-            : "Sign in to calculate"}
+        {busy ? "Consulting the heavens…" : isAuthed ? submitLabel : "Sign in to calculate"}
       </button>
 
       <style>{`
