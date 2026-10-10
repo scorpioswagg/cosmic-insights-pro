@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as MyReportsRouteImport } from './routes/my-reports'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as SynastryRouteImport } from './routes/synastry'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -24,7 +25,7 @@ import { Route as ApiSendReportRouteImport } from './routes/api/send-report'
 import { Route as CheckoutCancelRouteImport } from './routes/checkout.cancel'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool.$tool'
 import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
 import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 
@@ -46,6 +47,12 @@ const McpRoute = McpRouteImport.update({
 const MyReportsRoute = MyReportsRouteImport.update({
   id: '/my-reports',
   path: '/my-reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SynastryRoute = SynastryRouteImport.update({
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/academy': typeof AcademyRoute
   '/mcp': typeof McpRoute
   '/my-reports': typeof MyReportsRoute
+  '/dashboard': typeof DashboardRoute
   '/synastry': typeof SynastryRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -147,6 +155,7 @@ export interface FileRoutesByTo {
   '/academy': typeof AcademyRoute
   '/mcp': typeof McpRoute
   '/my-reports': typeof MyReportsRoute
+  '/dashboard': typeof DashboardRoute
   '/synastry': typeof SynastryRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -168,6 +177,7 @@ export interface FileRoutesById {
   '/academy': typeof AcademyRoute
   '/mcp': typeof McpRoute
   '/my-reports': typeof MyReportsRoute
+  '/dashboard': typeof DashboardRoute
   '/synastry': typeof SynastryRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/mcp'
     | '/my-reports'
+    | '/dashboard'
     | '/synastry'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/mcp'
     | '/my-reports'
+    | '/dashboard'
     | '/synastry'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -230,6 +242,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/mcp'
     | '/my-reports'
+    | '/dashboard'
     | '/synastry'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -251,6 +264,7 @@ export interface RootRouteChildren {
   AcademyRoute: typeof AcademyRoute
   McpRoute: typeof McpRoute
   MyReportsRoute: typeof MyReportsRoute
+  DashboardRoute: typeof DashboardRoute
   SynastryRoute: typeof SynastryRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -295,6 +309,13 @@ declare module '@tanstack/react-router' {
       path: '/my-reports'
       fullPath: '/my-reports'
       preLoaderRoute: typeof MyReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/synastry': {
@@ -403,6 +424,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcademyRoute: AcademyRoute,
   McpRoute: McpRoute,
   MyReportsRoute: MyReportsRoute,
+  DashboardRoute: DashboardRoute,
   SynastryRoute: SynastryRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
@@ -422,13 +444,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
