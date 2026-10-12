@@ -474,7 +474,7 @@ function LessonAspects() {
               <span className="text-2xl text-gold">{a.glyph}</span>
               <div>
                 <div className="font-medium">{a.name}</div>
-                <div className="text-xs text-muted-foreground">{a.degrees} · {a.vibe}</div>
+                <div className="text-xs text-muted-foreground">{a.angle}°{" "} · {a.vibe}</div>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{a.meaning}</p>
@@ -605,7 +605,7 @@ function Quiz({ id, questions }: { id: string; questions: QuizQuestion[] }) {
   if (!questions.length) return null;
 
   const all = Object.keys(answers).length === questions.length;
-  const score = questions.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
+  const score = questions.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0);
 
   return (
     <div className="rounded-xl border border-gold/20 bg-card/40 p-5">
@@ -613,7 +613,7 @@ function Quiz({ id, questions }: { id: string; questions: QuizQuestion[] }) {
       <div className="space-y-5">
         {questions.map((q, qi) => {
           const picked = answers[qi];
-          const correct = picked === q.correct;
+          const correct = picked === q.answer;
           return (
             <div key={qi}>
               <div className="text-sm font-medium mb-2">{q.q}</div>
@@ -623,7 +623,7 @@ function Quiz({ id, questions }: { id: string; questions: QuizQuestion[] }) {
                   let cls = "text-left w-full text-xs px-3 py-2 rounded-md border transition ";
                   if (picked === undefined) {
                     cls += "border-border/40 hover:border-gold/40 text-muted-foreground hover:text-foreground";
-                  } else if (ci === q.correct) {
+                  } else if (ci === q.answer) {
                     cls += "border-emerald-500/50 bg-emerald-500/10 text-emerald-200";
                   } else if (selected) {
                     cls += "border-rose-500/50 bg-rose-500/10 text-rose-200";

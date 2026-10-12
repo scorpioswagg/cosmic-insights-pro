@@ -316,6 +316,51 @@ export type Database = {
           },
         ]
       }
+      saved_birth_profiles: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          place: string
+          time: string
+          time_unknown: boolean
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          place: string
+          time: string
+          time_unknown?: boolean
+          timezone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          place?: string
+          time?: string
+          time_unknown?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stripe_webhook_events: {
         Row: {
           created_at: string
@@ -337,6 +382,48 @@ export type Database = {
           payload?: Json
           processed_at?: string
           type?: string
+        }
+        Relationships: []
+      }
+      user_generated_reports: {
+        Row: {
+          chart_name: string
+          chart_snapshot: Json
+          created_at: string
+          generated_at: string
+          id: string
+          markdown: string
+          partner_name: string | null
+          partner_snapshot: Json | null
+          report_id: string
+          report_title: string
+          user_id: string
+        }
+        Insert: {
+          chart_name: string
+          chart_snapshot?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          markdown: string
+          partner_name?: string | null
+          partner_snapshot?: Json | null
+          report_id: string
+          report_title: string
+          user_id: string
+        }
+        Update: {
+          chart_name?: string
+          chart_snapshot?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          markdown?: string
+          partner_name?: string | null
+          partner_snapshot?: Json | null
+          report_id?: string
+          report_title?: string
+          user_id?: string
         }
         Relationships: []
       }
