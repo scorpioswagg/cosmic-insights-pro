@@ -52,8 +52,8 @@ export type SavedGeneratedReport = {
   chart_name: string;
   partner_name: string | null;
   markdown: string;
-  chart_snapshot: Record<string, unknown>;
-  partner_snapshot: Record<string, unknown> | null;
+  chart_snapshot: Record<string, any>;
+  partner_snapshot: Record<string, any> | null;
   generated_at: string;
   created_at: string;
 };
@@ -182,8 +182,8 @@ export const saveGeneratedReport = createServerFn({ method: "POST" })
       chart_name: data.chartName,
       partner_name: data.partnerName ?? null,
       markdown: data.markdown,
-      chart_snapshot: data.chartSnapshot,
-      partner_snapshot: data.partnerSnapshot ?? null,
+      chart_snapshot: data.chartSnapshot as any,
+      partner_snapshot: (data.partnerSnapshot ?? null) as any,
       generated_at: data.generatedAt ?? new Date().toISOString(),
     };
     const { data: inserted, error } = await context.supabase
