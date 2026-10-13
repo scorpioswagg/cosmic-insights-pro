@@ -419,7 +419,7 @@ export function sendReadingBookingConfirmation(args: {
            <p>Thank you for requesting a live Cosmic Blueprint reading. Your request is in our hands.</p>
            <p><span style="color:${BRAND.muted};">Reading:</span> <strong style="color:${BRAND.gold};">${escapeHtml(args.readingType)}</strong><br/>
               <span style="color:${BRAND.muted};">Preferred times:</span> ${escapeHtml(args.preferredTimes)}</p>
-           <p>Kyle (the Oracle) will reply from <strong style="color:${BRAND.gold};">oracle@mycosmicblueprint.online</strong> within 1–2 business days to confirm a session time and next steps.</p>
+           <p>We will reply within 1–2 business days to confirm a session time and next steps.</p>
            <p style="color:${BRAND.muted};font-size:13px;">Tip: If you have not already, generate your natal chart (and partner chart for relationship work) on the home page so we can prepare from the same evidence.</p>`,
     ctaLabel: "Open Cosmic Blueprint",
     ctaHref: `${siteUrl()}/`,
