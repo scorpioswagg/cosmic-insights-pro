@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const InputSchema = z.object({
   limit: z.number().int().min(1).max(200).optional(),
-  status: z.enum(["all", "sent", "failed", "pending"]).optional(),
+  status: z.enum(["all", "sent", "failed", "pending", "delivered", "opened", "clicked", "bounced", "complained"]).optional(),
 }).optional();
 
 export type EmailLogRow = {
