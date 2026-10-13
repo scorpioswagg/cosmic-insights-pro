@@ -5,6 +5,7 @@ import { useState } from "react";
 import { listEmailLogs } from "@/lib/admin/email-logs.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 export const Route = createFileRoute("/admin/emails")({
   ssr: false,
@@ -36,22 +37,34 @@ export const Route = createFileRoute("/admin/emails")({
 
 function AdminEmailsPage() {
   const fetchLogs = useServerFn(listEmailLogs);
-  const [status, setStatus] = useState<"all" | "sent" | "failed" | "pending">("all");
+  const [status, setStatus] = useState<
+    "all" | "sent" | "failed" | "pending" | "delivered" | "opened" | "bounced"
+  >("all");
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["email-logs", status],
     queryFn: () => fetchLogs({ data: { status, limit: 100 } }),
   });
 
-  const statuses: Array<typeof status> = ["all", "sent", "failed", "pending"];
+  const statuses: Array<typeof status> = [
+    "all",
+    "sent",
+    "delivered",
+    "opened",
+    "failed",
+    "pending",
+    "bounced",
+  ];
 
   return (
     <div className="mx-auto max-w-6xl p-6">
+      <AdminNav />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Email audit log</h1>
           <p className="text-sm text-muted-foreground">
-            Report delivery attempts via /api/send-report
+            All outbound mail (reports, booking, receipts, welcome, support) logged to{" "}
+            <code className="text-xs">email_send_log</code>. Status updates via the Resend webhook.
           </p>
         </div>
         <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
@@ -91,7 +104,7 @@ function AdminEmailsPage() {
             <thead className="bg-muted/40 text-left">
               <tr>
                 <th className="p-3">When</th>
-                <th className="p-3">Report</th>
+                <th className="p-3">Template</th>
                 <th className="p-3">Recipient</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Attempts</th>
@@ -159,9 +172,9 @@ function StatCard({
 
 function StatusBadge({ status }: { status: string }) {
   const variant =
-    status === "sent"
+    status === "sent" || status === "delivered" || status === "opened"
       ? "default"
-      : status === "failed"
+      : status === "failed" || status === "bounced" || status === "complained"
         ? "destructive"
         : "secondary";
   return <Badge variant={variant as never}>{status}</Badge>;
