@@ -1,0 +1,87 @@
+report_id,stripe_product_name,stripe_product_id,stripe_price_id,price_usd,price_cents,currency,stripe_product_active,source,sync_status
+ambition-autopsy,The Ambition Autopsy™,prod_VDPcjGHttPqkCy,price_1UCynOAf6sEE4moKEUpgcwUN,99.00,9900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+unspoken-contract,The Unspoken Contract™,prod_VDPcw1XpxWFFK8,price_1UCynMAf6sEE4moKIAjFnHVP,99.00,9900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+brutal-blueprint,The Brutal Blueprint™,prod_VDPccLOLBmcW4U,price_1UCynIAf6sEE4moKk4cjRURS,99.00,9900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+unlived-lives,The Unlived Lives Report,unlived-lives,price_1U3zUgAf6sEE4moKpxyAyGOG,69.00,6900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+ritual-codex,Your Personal Ritual Codex,ritual-codex,price_1U3zUcAf6sEE4moKNp3yzESw,69.00,6900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+creative-process-engineering,Creative Process Engineering,creative-process-engineering,price_1U3zULAf6sEE4moKeMz4rsfy,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+digital-self,Your Digital & Online Self,digital-self,price_1U3zUGAf6sEE4moKCpbek1qM,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+loop-breaker-forensics,Loop Breaker Forensics,loop-breaker-forensics,price_1U3zUCAf6sEE4moKLsvNSe5d,69.00,6900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+apology-repair,The Apology & Repair Manual,apology-repair,price_1U3zTnAf6sEE4moKSCWFJmT9,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+grief-metabolism,Grief & Loss Metabolism,grief-metabolism,price_1U3zTkAf6sEE4moKZ1v0Av55,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+language-signature,Your Language Signature,language-signature,price_1U3zTgAf6sEE4moKRtHyPFb5,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+environment-design,"Environmental Astrology: Home, Light & Space",environment-design,price_1U3zTYAf6sEE4moKKjBrOfHj,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+reputation-signature,Reputation Signature,reputation-signature,price_1U3zTOAf6sEE4moKl2bOIv8y,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+attention-architecture,Attention & Focus Architecture,attention-architecture,price_1U3zTLAf6sEE4moKrd1EHeN8,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+negotiation-playbook,Personal Negotiation Playbook,negotiation-playbook,price_1U3zTHAf6sEE4moKQUaDrpts,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+nervous-system-astrology,Nervous System Astrology,nervous-system-astrology,price_1U3zT8Af6sEE4moK8i40mQYo,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+energy-economy,Energy Economy & Burnout Physics,energy-economy,price_1U3zT5Af6sEE4moKwOimXoYX,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+risk-profile-forensics,Personal Risk Profile & Failure Forensics,risk-profile-forensics,price_1U3zT1Af6sEE4moKzuNKDOBC,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+decision-architecture,Decision Architecture Report,decision-architecture,price_1U3zSxAf6sEE4moKHwi2ScEm,59.00,5900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+chart-operating-system,Your Chart Operating System Manual,chart-operating-system,price_1U3mREAf6sEE4moKiw1DEsld,69.00,6900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+legacy-life-impact,Legacy & Life Impact Report,legacy-life-impact,price_1U3mR9Af6sEE4moKglRdPDdr,39.00,3900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+hidden-talents-gifts,Hidden Talents & Natural Gifts,hidden-talents-gifts,price_1U3mR5Af6sEE4moKfLwt4OA1,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+midlife-transformation,Midlife Transformation Blueprint,midlife-transformation,price_1U3mR0Af6sEE4moKpcaeYJ3L,39.00,3900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+saturn-return-survival,Saturn Return Survival Guide,saturn-return-survival,price_1U3mQvAf6sEE4moKRR5AsU20,39.00,3900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+lunar-manifestation-guide,Lunar Manifestation Guide,lunar-manifestation-guide,price_1U3mQsAf6sEE4moKJpazGl5Q,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+dream-intuition-blueprint,Dream & Intuition Blueprint,dream-intuition-blueprint,price_1U3mQmAf6sEE4moKyOaLB2Zj,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+marriage-potential,Marriage Potential Report,marriage-potential,price_1U3mQjAf6sEE4moKH2abC30Z,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+twin-flame-separation-reunion,Twin Flame Separation & Reunion,twin-flame-separation-reunion,price_1U3mQhAf6sEE4moKf7YBCcTd,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+entrepreneur-success,Entrepreneur Success Blueprint,entrepreneur-success,price_1U3mQcAf6sEE4moKGej6aSPO,39.00,3900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+business-partnership-compatibility,Business Partnership Compatibility,business-partnership-compatibility,price_1U3mQXAf6sEE4moKsPYJPq6u,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+parent-child-compatibility,Parent & Child Compatibility,parent-child-compatibility,price_1U3mQUAf6sEE4moKc8V1vvmB,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+friendship-compatibility,Friendship Compatibility,friendship-compatibility,price_1U3mQRAf6sEE4moK5ZHDgXG4,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+health-wellness-tendencies,Health & Wellness Tendencies,health-wellness-tendencies,price_1U3mQNAf6sEE4moKJEZoTrzw,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+life-timing-turning-points,Life Timing & Major Turning Points,life-timing-turning-points,price_1U3mQFAf6sEE4moKtF2iySGS,39.00,3900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+spiritual-gifts-psychic,Spiritual Gifts & Psychic Abilities,spiritual-gifts-psychic,price_1U3mQBAf6sEE4moKlhPzIBqG,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+money-blocks-abundance,Money Blocks & Abundance Blueprint,money-blocks-abundance,price_1U3mQ7Af6sEE4moKd4sCYZ0P,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+divine-masculine-feminine,Divine Masculine & Divine Feminine Balance,divine-masculine-feminine,price_1U3mQ4Af6sEE4moKhLGtmzM9,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+shadow-personality,Shadow Personality Report,shadow-personality,price_1U3mQ1Af6sEE4moKwzdGogTm,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+legacy-builder,Legacy Builder Report™,legacy-builder,price_1U3mPwAf6sEE4moK5AB9wJso,49.00,4900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+freedom-warrior,Freedom Warrior Report™,freedom-warrior,price_1U3mPqAf6sEE4moKNXP26XGZ,49.00,4900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+united-we-heal,United We Heal™,united-we-heal,price_1U3mPoAf6sEE4moKhmCSHTqH,49.00,4900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+leader-within-you,The Leader Within You™,leader-within-you,price_1U3mPlAf6sEE4moKIDZRXwDy,49.00,4900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+americas-future-forecast,America's Future Forecast™,americas-future-forecast,price_1U3mPgAf6sEE4moKIL8MoAkp,49.00,4900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+patriots-soul-blueprint,Patriot's Soul Blueprint™,patriots-soul-blueprint,price_1U3mPdAf6sEE4moKbS9uqGeS,49.00,4900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+transit-libido,Libido Forecast — Erotic Transits Ahead,transit-libido,price_1U3mPXAf6sEE4moKErHLZvCF,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+sexual-healing,Sexual Healing & Reclaiming Pleasure,sexual-healing,price_1U3mPVAf6sEE4moK366kxjJo,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+non-monogamy,"Non-Monogamy, Polyamory & Relationship Design",non-monogamy,price_1U3mPSAf6sEE4moK4dUTyy3g,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+tantra-sacred-sex,Tantra & Sacred Sexuality,tantra-sacred-sex,price_1U3mPPAf6sEE4moKdnNZ4re4,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+queer-eros,Queer Eros & Expansive Desire,queer-eros,price_1U3mPMAf6sEE4moKYTxVIDkM,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+body-sensuality,"Body, Sensuality & Embodied Pleasure",body-sensuality,price_1U3mPHAf6sEE4moKTyUrv5GN,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+fantasy-desire,"Fantasy, Desire & the Inner Erotic Theater",fantasy-desire,price_1U3mPBAf6sEE4moKCcViCB5g,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+sexual-compatibility,Sexual Compatibility Lens,sexual-compatibility,price_1U3mP8Af6sEE4moKdDihgUkq,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+kink-shadow,"Kink, Power & the Erotic Shadow",kink-shadow,price_1U3mP2Af6sEE4moKIyCSvLEz,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+erotic-blueprint,Erotic Blueprint,erotic-blueprint,price_1U3mOzAf6sEE4moK01nYzqdM,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+trauma-resilience,Trauma Patterns & Resilience,trauma-resilience,price_1U3mOvAf6sEE4moK7DWATpW7,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+identity-becoming,"Identity, Persona & Becoming",identity-becoming,price_1U3mOrAf6sEE4moKALXJaI8B,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+dreams-subconscious,"Dreams, Symbols & the Subconscious",dreams-subconscious,price_1U3mOmAf6sEE4moKc3EvI18T,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+midlife-passage,Midlife Passage & Soul Reawakening,midlife-passage,price_1U3mOjAf6sEE4moKJdTjHhJ4,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+ancestral-lineage,Ancestral Lineage & Karmic Inheritance,ancestral-lineage,price_1U3mOgAf6sEE4moKul01e1HG,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+fears-anxieties,"Fears, Anxieties & the Nervous System",fears-anxieties,price_1U3mOcAf6sEE4moKBpowR5yL,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+purpose-meaning,"Purpose, Meaning & the Sacred Yes",purpose-meaning,price_1U3mOXAf6sEE4moKB1Dy3bsV,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+boundaries-energy,Boundaries & Energetic Sovereignty,boundaries-energy,price_1U3mOTAf6sEE4moKR3hdFG8V,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+self-worth,Self-Worth & Inner Authority,self-worth,price_1U3mOOAf6sEE4moKWvaFRbFh,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+grief-loss,"Grief, Loss & Letting Go",grief-loss,price_1U3mOLAf6sEE4moKNKeVly3H,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+attachment-style,Attachment Style & Intimacy Patterns,attachment-style,price_1U3mOGAf6sEE4moKJjFnkvEE,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+inner-child,Inner Child & Emotional Origins,inner-child,price_1U3mOCAf6sEE4moK7nV38pR9,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+manifestation-power,Manifestation & Personal Power,manifestation-power,price_1U3mO7Af6sEE4moKaiv53hRn,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+intuition-psychic,Intuition & Psychic Gifts,intuition-psychic,price_1U3dFwAf6sEE4moK7uxvsFIy,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+health-vitality,Health & Vitality,health-vitality,price_1U3dFqAf6sEE4moKS4ycmCed,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+friendship-community,Friendship & Community,friendship-community,price_1U3dFmAf6sEE4moKezLTZD28,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+year-ahead,Year Ahead Forecast,year-ahead,price_1U3dCkAf6sEE4moKB9tyTVGl,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+spiritual-mystic,Spiritual & Mystical Path,spiritual-mystic,price_1U3dCeAf6sEE4moKW8vvcJPR,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+creative-expression,Creative Expression & Joy,creative-expression,price_1U3dCaAf6sEE4moKNN15uhbM,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+family-roots,"Family, Home & Roots",family-roots,price_1U3dCVAf6sEE4moKgBl47drX,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+venus-love-language,Venus — Aesthetics & Affection,venus-love-language,price_1U3dCSAf6sEE4moKvGUvyRHi,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+mars-drive,"Mars — Drive, Desire & Anger",mars-drive,price_1U3dCPAf6sEE4moK7QbENRIQ,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+jupiter-expansion,Jupiter — Your Field of Expansion,jupiter-expansion,price_1U3dCMAf6sEE4moKfjwAKmvO,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+saturn-return,Saturn Return Map,saturn-return,price_1U3dCHAf6sEE4moKXaJ0QZmK,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+mind-communication,Mind & Communication,mind-communication,price_1U3dCCAf6sEE4moKqkzsGIhj,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+lunar-emotional,Lunar & Emotional Body,lunar-emotional,price_1U3dC4Af6sEE4moKkp7mG2gp,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+shadow-work,Shadow Work & Healing,shadow-work,price_1U3dC1Af6sEE4moKQmvE6ndC,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+money-abundance,Money & Abundance,money-abundance,price_1U3dBwAf6sEE4moKv4RuLvJZ,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+career-vocation,Career & Vocation,career-vocation,price_1U3dBtAf6sEE4moKDT3KB6Qd,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+love-romance,Love & Romance Blueprint,love-romance,price_1U3dBoAf6sEE4moKl7XxlXIZ,19.00,1900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+soul-purpose,Soul Purpose & Life Path,soul-purpose,price_1U3dBkAf6sEE4moK2l50Xwy5,14.00,1400,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
+natal-essence,Natal Essence,natal-essence,price_1U3dBQAf6sEE4moK2zGiCf5W,29.00,2900,usd,true,Stripe live account acct_1ThgrSAf6sEE4moK,MATCHED_FROM_EXISTING_STRIPE_PRICE
