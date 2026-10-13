@@ -3,6 +3,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { defaultPriceCents } from "./pricing";
+import { catalogPriceFor } from "./catalog-pricing";
 
 export type AccessReason =
   | "admin"
@@ -20,8 +21,8 @@ export interface ReportAccess {
   priceCents?: number;
 }
 
-/** TEMPORARY: when true, every report is free for all signed-in users. */
-const ALL_REPORTS_FREE = true;
+/** When true, every report is free for all signed-in users. Set false so catalog is_free / price_cents gate access. */
+const ALL_REPORTS_FREE = false;
 
 /** Hardcoded founder / operator emails that always receive admin. */
 const HARDCODED_ADMINS = ["swaggersofyne@gmail.com", "oracle@mycosmicblueprint.online"];
@@ -144,6 +145,7 @@ async function loadProduct(reportId: string) {
   // seeded so generate always has a product ID.
   const def = REPORTS.find((r) => r.id === reportId);
   if (!def) return null;
+  const price = catalogPriceFor(def.id, defaultPriceCents(def));
   const row = {
     id: def.id,
     title: def.title,
@@ -151,9 +153,9 @@ async function loadProduct(reportId: string) {
     category: def.category,
     icon: def.icon,
     adult: !!def.adult,
-    price_cents: 0,
-    is_free: true,
-    is_published: true,
+    price_cents: price.price_cents,
+    is_free: price.is_free,
+    is_published: price.is_published,
     slug: def.id,
   };
   await supabaseAdmin.from("report_products").upsert(row, { onConflict: "id" });
