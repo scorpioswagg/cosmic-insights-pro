@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { REPORTS } from "@/lib/astrology/reports-catalog";
 import { defaultPriceCents } from "./pricing";
+import { catalogPriceFor } from "./catalog-pricing";
 
 export interface ReportProduct {
   id: string;
@@ -35,6 +36,7 @@ function productFromDef(
   r: (typeof REPORTS)[number],
   index: number,
 ): ReportProduct {
+  const price = catalogPriceFor(r.id, defaultPriceCents(r));
   return {
     id: r.id,
     title: r.title,
@@ -42,44 +44,41 @@ function productFromDef(
     category: r.category,
     icon: r.icon,
     adult: !!r.adult,
-    price_cents: 0, // temporarily free for everyone
-    is_free: true,
-    is_published: true,
+    price_cents: price.price_cents,
+    is_free: price.is_free,
+    is_published: price.is_published,
     sort_order: index,
   };
 }
 
 /**
  * Ensure every report in the code catalog exists in report_products.
- * Missing rows are upserted via service role so generate buttons always
- * have real product IDs (including all 18 Unfiltered Series).
+ * Upserts the full catalog so prices stay aligned with the Stripe CSV.
  */
 async function ensureCatalogSeeded(): Promise<void> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existing } = await supabaseAdmin.from("report_products").select("id");
-    const known = new Set((existing ?? []).map((r) => r.id));
-    const missing = REPORTS.filter((r) => !known.has(r.id));
-    if (missing.length === 0) return;
-
-    const rows = missing.map((r, i) => ({
-      id: r.id,
-      title: r.title,
-      tagline: r.tagline,
-      category: r.category,
-      icon: r.icon,
-      adult: !!r.adult,
-      price_cents: 0,
-      is_free: true,
-      is_published: true,
-      sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
-      slug: r.id,
-    }));
+    const rows = REPORTS.map((r) => {
+      const price = catalogPriceFor(r.id, defaultPriceCents(r));
+      return {
+        id: r.id,
+        title: r.title,
+        tagline: r.tagline,
+        category: r.category,
+        icon: r.icon,
+        adult: !!r.adult,
+        price_cents: price.price_cents,
+        is_free: price.is_free,
+        is_published: price.is_published,
+        sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
+        slug: r.id,
+      };
+    });
     const { error } = await supabaseAdmin.from("report_products").upsert(rows, {
       onConflict: "id",
     });
     if (error) console.error("[ensureCatalogSeeded]", error.message);
-    else console.log(`[ensureCatalogSeeded] inserted/updated ${rows.length} products`);
+    else console.log(`[ensureCatalogSeeded] upserted ${rows.length} products`);
   } catch (err) {
     console.error("[ensureCatalogSeeded] failed", err);
   }
@@ -87,7 +86,6 @@ async function ensureCatalogSeeded(): Promise<void> {
 
 /** Published catalog — always includes the full code catalog. */
 export const listPublishedReports = createServerFn({ method: "GET" }).handler(async () => {
-  // Best-effort seed so Unfiltered Series + synastry products exist in DB.
   await ensureCatalogSeeded();
 
   const { data, error } = await publicClient()
@@ -98,23 +96,24 @@ export const listPublishedReports = createServerFn({ method: "GET" }).handler(as
 
   if (error) {
     console.error("[listPublishedReports]", error.message);
-    // Fall back entirely to code catalog so the UI never goes empty.
     return REPORTS.map((r, i) => productFromDef(r, i));
   }
 
   const byId = new Map((data ?? []).map((p) => [p.id, p as ReportProduct]));
 
-  // Merge: every code-catalog report appears, preferring DB metadata when present.
   const merged: ReportProduct[] = REPORTS.map((r, i) => {
     const db = byId.get(r.id);
     if (db) {
-      return {
-        ...db,
-        // Force free while ALL_REPORTS_FREE is on
-        is_free: true,
-        price_cents: 0,
-        is_published: true,
-      };
+      if (db.price_cents === 0 && db.is_free) {
+        const price = catalogPriceFor(r.id, defaultPriceCents(r));
+        return {
+          ...db,
+          price_cents: price.price_cents,
+          is_free: price.is_free,
+          is_published: price.is_published && db.is_published,
+        };
+      }
+      return { ...db, is_published: true };
     }
     return productFromDef(r, i);
   });
@@ -157,9 +156,9 @@ export const listAllReports = createServerFn({ method: "GET" })
 
 /**
  * Upserts every report in the code catalog into the database.
- * - New rows: free + published (temporary free period).
- * - Existing rows: refresh presentation fields.
- * - Unfiltered Series rows: published.
+ * - New rows: priced from the Stripe catalog CSV (catalog-pricing.ts).
+ * - Existing rows: refresh presentation fields + prices from the CSV.
+ * - is_free / price_cents follow the catalog (Unfiltered Series are paid).
  */
 export const syncReportCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -172,19 +171,22 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
     if (readErr) throw new Error(readErr.message);
     const known = new Set((existing ?? []).map((r) => r.id));
 
-    const inserts = REPORTS.filter((r) => !known.has(r.id)).map((r) => ({
-      id: r.id,
-      title: r.title,
-      tagline: r.tagline,
-      category: r.category,
-      icon: r.icon,
-      adult: !!r.adult,
-      price_cents: 0,
-      is_free: true,
-      is_published: true,
-      sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
-      slug: r.id,
-    }));
+    const inserts = REPORTS.filter((r) => !known.has(r.id)).map((r) => {
+      const price = catalogPriceFor(r.id, defaultPriceCents(r));
+      return {
+        id: r.id,
+        title: r.title,
+        tagline: r.tagline,
+        category: r.category,
+        icon: r.icon,
+        adult: !!r.adult,
+        price_cents: price.price_cents,
+        is_free: price.is_free,
+        is_published: price.is_published,
+        sort_order: Math.max(0, REPORTS.findIndex((x) => x.id === r.id)),
+        slug: r.id,
+      };
+    });
 
     if (inserts.length > 0) {
       const { error } = await context.supabase.from("report_products").insert(inserts);
@@ -193,24 +195,16 @@ export const syncReportCatalog = createServerFn({ method: "POST" })
 
     let updated = 0;
     for (const r of REPORTS) {
-      const patch: {
-        title: string;
-        tagline: string;
-        category: string;
-        icon: string;
-        adult: boolean;
-        price_cents?: number;
-        is_free?: boolean;
-        is_published?: boolean;
-      } = {
+      const price = catalogPriceFor(r.id, defaultPriceCents(r));
+      const patch = {
         title: r.title,
         tagline: r.tagline,
         category: r.category,
         icon: r.icon,
         adult: !!r.adult,
-        price_cents: 0,
-        is_free: true,
-        is_published: true,
+        price_cents: price.price_cents,
+        is_free: price.is_free,
+        is_published: price.is_published,
       };
       const { error } = await context.supabase
         .from("report_products")
