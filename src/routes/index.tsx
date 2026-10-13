@@ -253,8 +253,205 @@ function Index() {
           </p>
         </header>
 
-        {/* REST OF FILE CONTINUES - truncated for tool size; full file must be restored */}
-        <div>ERROR_PARTIAL_UPLOAD - use full file from artifacts</div>
+        {showWelcome && user && (
+          <WelcomeModal open={showWelcome} onDismiss={dismissWelcome} />
+        )}
+
+        {!user && !authLoading ? (
+          <div className="max-w-xl mx-auto glass rounded-2xl p-8 text-center shadow-deep">
+            <p className="text-xs uppercase tracking-[0.3em] text-gold mb-3">Members only</p>
+            <h2 className="font-display text-3xl text-gradient-gold mb-3">
+              Sign in to access your Cosmic Blueprint
+            </h2>
+            <p className="text-muted-foreground mb-6 text-sm leading-relaxed">
+              Sign in with Google or Apple before the birth form and premium report library become
+              available.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button
+                onClick={handleGoogleSignIn}
+                className="inline-flex items-center gap-2 text-sm uppercase tracking-wider px-6 py-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition"
+              >
+                Sign in with Google
+              </button>
+              <button
+                onClick={handleAppleSignIn}
+                className="inline-flex items-center gap-2 text-sm uppercase tracking-wider px-6 py-3 rounded-md bg-foreground text-background hover:opacity-90 transition"
+              >
+                Sign in with Apple
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <section className="grid lg:grid-cols-2 gap-8 items-start">
+              <BirthForm
+                onSubmit={handleCalc}
+                busy={busy}
+                isAuthed={!!user}
+                showSample={isAdmin}
+                onSignIn={handleGoogleSignIn}
+              />
+              <div className="glass rounded-2xl p-6 shadow-deep space-y-5 text-sm">
+                <h2 className="font-display text-xl text-gradient-gold">What you get</h2>
+                <ul className="space-y-2.5 text-muted-foreground">
+                  <li className="flex gap-3">
+                    <span className="text-gold shrink-0">✦</span> All 10 classical planets, Chiron,
+                    North/South Nodes, Lilith
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-gold shrink-0">✦</span> Ascendant, Midheaven, Vertex, Part of
+                    Fortune
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-gold shrink-0">⚯</span> True two-chart synastry with
+                    cross-aspects & house overlays
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-gold shrink-0">★</span> Premium reports including THE
+                    RELATIONSHIP CRIME SCENE™
+                  </li>
+                </ul>
+              </div>
+            </section>
+
+            {error && (
+              <div className="mt-8 glass rounded-xl p-4 border border-destructive/50 text-destructive text-sm">
+                <strong>Calculation failed:</strong> {error}
+              </div>
+            )}
+
+            {chart && (
+              <section id="chart-result" className="mt-20 space-y-8">
+                <div className="text-center">
+                  <p className="text-xs uppercase tracking-[0.35em] text-gold mb-2">Natal Chart</p>
+                  <h2 className="font-display text-4xl text-gradient-gold">{chart.input.name}</h2>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {chart.input.date} · {chart.input.time} · {chart.input.place}
+                  </p>
+                </div>
+
+                <div className="grid lg:grid-cols-[1.2fr_1fr] gap-8 items-start">
+                  <div className="glass rounded-2xl p-6 shadow-deep">
+                    <ChartWheel chart={chart} />
+                  </div>
+                  <PlacementsTable chart={chart} />
+                </div>
+
+                <div className="glass rounded-2xl p-6 shadow-deep space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-gold mb-1">Synastry</p>
+                      <h3 className="font-display text-2xl text-gradient-gold">Partner Chart</h3>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                        Add a second birth chart to unlock two-chart reports and see partner wheel,
+                        placements, and cross-aspects.
+                      </p>
+                    </div>
+                    {partnerChart ? (
+                      <div className="text-right">
+                        <p className="text-sm text-gold font-medium">{partnerChart.input.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {partnerChart.input.date} · {partnerChart.input.place}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPartnerChart(null);
+                            setShowPartnerForm(true);
+                          }}
+                          className="mt-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition"
+                        >
+                          Replace partner chart
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowPartnerForm((v) => !v)}
+                        className="px-5 py-2.5 rounded-xl border border-gold/50 text-gold text-xs uppercase tracking-widest hover:bg-gold/10 transition"
+                      >
+                        {showPartnerForm ? "Hide form" : "Add partner chart"}
+                      </button>
+                    )}
+                  </div>
+                  {showPartnerForm && !partnerChart && (
+                    <div className="pt-4 border-t border-border/40">
+                      <BirthForm
+                        onSubmit={handlePartnerCalc}
+                        busy={partnerBusy}
+                        isAuthed={!!user}
+                        showSample={false}
+                        onSignIn={handleGoogleSignIn}
+                        title="Partner Birth Details"
+                        nameLabel="Partner's Full Name"
+                        submitLabel="Calculate Partner Chart"
+                        hideGuide
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {partnerChart && (
+                  <div id="partner-chart-result" className="space-y-6">
+                    <div className="text-center">
+                      <p className="text-xs uppercase tracking-[0.35em] text-gold mb-2">Partner Chart</p>
+                      <h2 className="font-display text-3xl text-gradient-gold">
+                        {partnerChart.input.name}
+                      </h2>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {partnerChart.input.date} · {partnerChart.input.time} ·{" "}
+                        {partnerChart.input.place}
+                      </p>
+                    </div>
+                    <div className="grid lg:grid-cols-[1.2fr_1fr] gap-8 items-start">
+                      <div className="glass rounded-2xl p-6 shadow-deep">
+                        <ChartWheel chart={partnerChart} />
+                      </div>
+                      <PlacementsTable chart={partnerChart} />
+                    </div>
+                    <div className="glass rounded-2xl p-6 shadow-deep space-y-3">
+                      {(() => {
+                        const syn = computeSynastry(chart, partnerChart);
+                        return (
+                          <>
+                            <h3 className="font-display text-xl text-gradient-gold">
+                              Cross-chart aspects ({syn.aspects.length})
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Tightest contacts between {chart.input.name} and{" "}
+                              {partnerChart.input.name}.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                              {syn.aspects.slice(0, 24).map((a, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center justify-between bg-card/50 rounded-md px-3 py-2 border border-border/40"
+                                >
+                                  <span>
+                                    <span className="text-gold">{a.a}</span> {a.type}{" "}
+                                    <span className="text-gold">{a.b}</span>
+                                  </span>
+                                  <span className="text-muted-foreground text-xs">{a.orb.toFixed(1)}°</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                <ReportsPanel chart={chart} partnerChart={partnerChart} />
+              </section>
+            )}
+          </>
+        )}
+
+        <footer className="mt-24 pt-8 border-t border-border/40 text-center text-xs text-muted-foreground">
+          Swiss Ephemeris © Astrodienst AG · Licensed under GPL v3 · Cosmic Blueprint platform
+        </footer>
       </div>
     </div>
   );
