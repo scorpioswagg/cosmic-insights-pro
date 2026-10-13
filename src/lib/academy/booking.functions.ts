@@ -45,7 +45,7 @@ export const submitReadingBooking = createServerFn({ method: "POST" })
 
     if (!notify.ok && !confirm.ok) {
       throw new Error(
-        notify.error || confirm.error || "Could not send booking emails. Please try again or email oracle@mycosmicblueprint.online directly.",
+        notify.error || confirm.error || "Could not send booking emails. Please try again or use the Email me button on the Academy page.",
       );
     }
 
