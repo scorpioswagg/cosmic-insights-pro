@@ -4,20 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -62,7 +48,6 @@
 }
 
 :root {
-  /* Cosmic Blueprint — deep midnight night sky with antique gold accents */
   --radius: 0.75rem;
   --background: oklch(0.14 0.04 280);
   --foreground: oklch(0.96 0.015 80);
@@ -70,13 +55,13 @@
   --card-foreground: oklch(0.96 0.015 80);
   --popover: oklch(0.17 0.05 278);
   --popover-foreground: oklch(0.96 0.015 80);
-  --primary: oklch(0.82 0.15 85);       /* antique gold */
+  --primary: oklch(0.82 0.15 85);
   --primary-foreground: oklch(0.14 0.04 280);
   --secondary: oklch(0.32 0.08 278);
   --secondary-foreground: oklch(0.96 0.015 80);
   --muted: oklch(0.24 0.05 278);
   --muted-foreground: oklch(0.72 0.04 80);
-  --accent: oklch(0.62 0.18 305);       /* cosmic violet */
+  --accent: oklch(0.62 0.18 305);
   --accent-foreground: oklch(0.98 0.01 80);
   --destructive: oklch(0.62 0.22 25);
   --destructive-foreground: oklch(0.98 0.01 80);
@@ -200,7 +185,6 @@
   }
 }
 
-/* Prevent stuck dialog layers from frosting the whole site */
 [data-state="closed"][data-radix-dialog-overlay],
 [data-state="closed"][data-radix-dialog-content],
 [data-radix-dialog-overlay][data-state="closed"],
@@ -208,4 +192,35 @@
   opacity: 0 !important;
   pointer-events: none !important;
   visibility: hidden !important;
+}
+
+/* ===== Animated starfield (marketing homepage) ===== */
+.cb-star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0;
+  animation: cb-twinkle var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+@keyframes cb-twinkle {
+  0%, 100% { opacity: var(--min-opacity); transform: scale(1); }
+  50% { opacity: var(--max-opacity); transform: scale(1.3); }
+}
+.cb-shooting-star {
+  position: absolute;
+  width: 120px;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.9), transparent);
+  border-radius: 50%;
+  opacity: 0;
+  transform: rotate(-35deg);
+  animation: cb-shoot 4.5s linear forwards;
+  filter: drop-shadow(0 0 4px oklch(0.88 0.12 90 / 0.6));
+}
+@keyframes cb-shoot {
+  0% { opacity: 0; transform: translateX(0) translateY(0) rotate(-35deg); }
+  5% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateX(650px) translateY(380px) rotate(-35deg); }
 }
