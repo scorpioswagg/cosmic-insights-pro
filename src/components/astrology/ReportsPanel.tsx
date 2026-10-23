@@ -198,7 +198,6 @@ export function ReportsPanel({
 
   const priceById = new Map((catalog ?? []).map((p) => [p.id, p]));
   // Always show the full code catalog so every report is included in the new setup.
-  // Prices come from catalog (DB + catalog-pricing.json); missing rows fall back to defaults on unlock.
   const visible = REPORTS;
 
   const grouped = visible.reduce<Record<string, typeof REPORTS>>((acc, r) => {
@@ -230,6 +229,10 @@ export function ReportsPanel({
 
   async function runBulkGenerate() {
     if (isBulkRunning) return;
+    if (!isAdmin) {
+      toast.error("Bulk generate is admin-only.");
+      return;
+    }
     const targets = visible.filter((r) => isUnlocked(r.id));
     if (targets.length === 0) {
       toast.error("No unlocked reports to generate.");
@@ -310,7 +313,6 @@ export function ReportsPanel({
     const p = priceById.get(id);
     if (p && (p.is_free || p.price_cents <= 0)) return "Free";
     if (isUnlocked(id)) return "Unlocked";
-    // Show the real catalog price on locked cards
     if (p) return formatPrice(p.price_cents);
     return "Locked";
   }
@@ -366,7 +368,7 @@ export function ReportsPanel({
             here.
           </p>
         )}
-        {(isAdmin || ALL_REPORTS_FREE) && (
+        {isAdmin && (
           <div className="mt-4 flex flex-col items-center gap-2">
             <button
               type="button"
