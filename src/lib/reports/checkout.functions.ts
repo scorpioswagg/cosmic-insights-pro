@@ -49,7 +49,6 @@ export const createReportCheckout = createServerFn({ method: "POST" })
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: email ?? undefined,
       client_reference_id: context.userId,
