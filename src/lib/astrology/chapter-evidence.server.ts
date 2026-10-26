@@ -91,23 +91,34 @@ export async function generateChapterEvidenceReport(opts: {
   const chapters: string[] = [];
   let rolling = "";
 
-  for (let i = 0; i < def.sections.length; i++) {
-    const chapter = def.sections[i];
-    const evidence =
-      def.requiresPartner && serialB && synResult
-        ? synastryEvidence(serialA, serialB, synResult, chapter)
-        : natalEvidence(serialA, chapter);
+  // Generate in small ordered batches of two. Chapters within a batch share
+  // the same prior-context snapshot, then are appended in their original order.
+  // This halves serial model round trips for long reports while bounding
+  // concurrency to avoid an unbounded burst against provider rate limits.
+  for (let batchStart = 0; batchStart < def.sections.length; batchStart += 2) {
+    const priorContext = rolling;
+    const batchIndexes = [batchStart, batchStart + 1].filter(
+      (index) => index < def.sections.length,
+    );
 
-    const prevNote = rolling
-      ? `\nPrior chapters (continuity only — do NOT repeat):\n${rolling.slice(-2800)}\n`
-      : "";
+    const pieces = await Promise.all(
+      batchIndexes.map(async (i) => {
+        const chapter = def.sections[i];
+        const evidence =
+          def.requiresPartner && serialB && synResult
+            ? synastryEvidence(serialA, serialB, synResult, chapter)
+            : natalEvidence(serialA, chapter);
 
-    const names =
-      def.requiresPartner && partnerChart
-        ? `${chart.input.name} and ${partnerChart.input.name}`
-        : chart.input.name;
+        const prevNote = priorContext
+          ? `\\nPrior chapters (continuity only — do NOT repeat):\\n${priorContext.slice(-2800)}\\n`
+          : "";
 
-    const prompt = `Write CHAPTER ${i + 1} of ${def.sections.length} of **${def.title}** for ${names}.
+        const names =
+          def.requiresPartner && partnerChart
+            ? `${chart.input.name} and ${partnerChart.input.name}`
+            : chart.input.name;
+
+        const prompt = `Write CHAPTER ${i + 1} of ${def.sections.length} of **${def.title}** for ${names}.
 
 Exact H2 heading (use this verbatim as ## heading):
 ${chapter}
@@ -127,10 +138,16 @@ Rules for this chapter:
 
 Begin now.`;
 
-    const result = await generateText({ model, system, prompt });
-    const piece = result.text.trim();
-    chapters.push(piece);
-    rolling = `${rolling}\n\n${piece}`.slice(-6000);
+        const result = await generateText({ model, system, prompt });
+        return result.text.trim();
+      }),
+    );
+
+    // Promise.all preserves input order, so the final report remains ordered.
+    for (const piece of pieces) {
+      chapters.push(piece);
+      rolling = `${rolling}\\n\\n${piece}`.slice(-6000);
+    }
   }
 
   return chapters.join("\n\n");
