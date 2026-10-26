@@ -24,6 +24,15 @@ export async function claimWebhookEvent(event: Stripe.Event): Promise<boolean> {
   return true;
 }
 
+/** Remove a failed claim so Stripe can safely retry the event. */
+export async function releaseWebhookEvent(eventId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("stripe_webhook_events")
+    .delete()
+    .eq("id", eventId);
+  if (error) throw new Error(error.message);
+}
+
 export async function grantEntitlement(args: {
   userId: string;
   reportId: string;
