@@ -35,6 +35,7 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      allow_promotion_codes: true,
       line_items: [
         {
           quantity: 1,
