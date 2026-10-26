@@ -37,57 +37,36 @@ export interface CatalogRow {
 }
 
 /**
- * Resolves (creating if needed) the Stripe Price for a report. The amount is
- * always taken from the database — never from the client.
+ * Resolve the existing Stripe Price assigned to a report. Stripe is the source
+ * of truth for live pricing: checkout must never silently create replacement
+ * products/prices or change the price a customer is offered.
  */
 export async function ensureStripePrice(
   stripe: Stripe,
   row: CatalogRow,
 ): Promise<string> {
-  if (row.stripe_price_id) {
-    try {
-      const existing = await stripe.prices.retrieve(row.stripe_price_id);
-      if (
-        existing.active &&
-        existing.unit_amount === row.price_cents &&
-        existing.currency === row.currency
-      ) {
-        return existing.id;
-      }
-    } catch {
-      // fall through and create a fresh price
-    }
+  if (!row.stripe_price_id) {
+    throw new Error(
+      `Checkout is not configured for "${row.title}" yet. Please contact support while the existing Stripe price is linked.`,
+    );
   }
 
-  let productId = row.stripe_product_id ?? null;
-  if (productId) {
-    try {
-      const p = await stripe.products.retrieve(productId);
-      if (!p.active) productId = null;
-    } catch {
-      productId = null;
-    }
-  }
-  if (!productId) {
-    const product = await stripe.products.create({
-      name: row.title,
-      description: row.tagline?.slice(0, 300) || undefined,
-      metadata: { report_id: row.id },
-    });
-    productId = product.id;
+  let existing: Stripe.Price;
+  try {
+    existing = await stripe.prices.retrieve(row.stripe_price_id);
+  } catch {
+    throw new Error(
+      `The saved Stripe price for "${row.title}" could not be found. No replacement price was created. Please contact support.`,
+    );
   }
 
-  const price = await stripe.prices.create({
-    product: productId,
-    currency: row.currency,
-    unit_amount: row.price_cents,
-    metadata: { report_id: row.id },
-  });
+  if (!existing.active || existing.type !== "one_time") {
+    throw new Error(
+      `The saved Stripe price for "${row.title}" is inactive or not a one-time price. Please contact support.`,
+    );
+  }
 
-  await supabaseAdmin
-    .from("report_products")
-    .update({ stripe_price_id: price.id, stripe_product_id: productId })
-    .eq("id", row.id);
-
-  return price.id;
+  // Do not compare against report_products.price_cents: Stripe's existing
+  // Price is the source of truth for what the customer will be charged.
+  return existing.id;
 }
