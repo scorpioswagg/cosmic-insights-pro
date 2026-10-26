@@ -110,7 +110,7 @@ export async function generateChapterEvidenceReport(opts: {
             : natalEvidence(serialA, chapter);
 
         const prevNote = priorContext
-          ? `\\nPrior chapters (continuity only — do NOT repeat):\\n${priorContext.slice(-2800)}\\n`
+          ? `\nPrior chapters (continuity only — do NOT repeat):\n${priorContext.slice(-2800)}\n`
           : "";
 
         const names =
@@ -146,7 +146,7 @@ Begin now.`;
     // Promise.all preserves input order, so the final report remains ordered.
     for (const piece of pieces) {
       chapters.push(piece);
-      rolling = `${rolling}\\n\\n${piece}`.slice(-6000);
+      rolling = `${rolling}\n\n${piece}`.slice(-6000);
     }
   }
 
