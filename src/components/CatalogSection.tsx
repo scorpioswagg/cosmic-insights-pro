@@ -84,7 +84,7 @@ export function CatalogSection() {
                 className="glass rounded-2xl p-6 shadow-deep flex flex-col border border-border/40 hover:border-gold/40 transition"
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <p className="font-mono text-lg text-gold">{formatPrice(pricing.saleCents)}</p>
+                  <p className="font-mono text-lg text-gold">{formatPrice(pricing.priceCents)}</p>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
                     Save {Math.round(bundle.discount * 100)}%
                   </span>
