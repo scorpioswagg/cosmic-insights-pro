@@ -81,6 +81,10 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     return { ok: false as const, reason: "missing_metadata" };
   }
 
+  if (session.mode !== "payment" || (session.payment_status !== "paid" && session.payment_status !== "no_payment_required")) {
+    return { ok: false as const, reason: "payment_not_complete" };
+  }
+
   const paymentIntent =
     typeof session.payment_intent === "string"
       ? session.payment_intent
