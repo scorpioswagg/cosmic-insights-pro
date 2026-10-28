@@ -71,13 +71,15 @@ function toSerial(c: ReportChartInput): SerialChart {
   };
 }
 
-/** How many chapters to generate in parallel. Higher = faster, more rate-limit risk. */
-const CHAPTER_PARALLELISM = 4;
+/**
+ * How many chapters to generate in parallel.
+ * 8 batches a 31-chapter Unfiltered report into ~4 waves instead of ~8.
+ */
+const CHAPTER_PARALLELISM = 8;
 
 /**
  * Chapter-by-chapter generation with evidence packets.
- * Runs in parallel batches of CHAPTER_PARALLELISM to cut wall-clock time
- * (31 sequential calls → ~8 batches). Continuity uses only earlier *batches*.
+ * Runs in parallel batches of CHAPTER_PARALLELISM to cut wall-clock time.
  */
 export async function generateChapterEvidenceReport(opts: {
   def: ReportDefinition;
@@ -95,7 +97,7 @@ export async function generateChapterEvidenceReport(opts: {
   }
 
   const wordsPerChapter = Math.max(
-    120,
+    100,
     Math.round(def.targetWords / def.sections.length),
   );
   const chapters: string[] = new Array(def.sections.length);
@@ -109,7 +111,7 @@ export async function generateChapterEvidenceReport(opts: {
   for (let start = 0; start < def.sections.length; start += CHAPTER_PARALLELISM) {
     const end = Math.min(start + CHAPTER_PARALLELISM, def.sections.length);
     const batchPrev = rolling
-      ? `\nPrior chapters (continuity only — do NOT repeat):\n${rolling.slice(-2400)}\n`
+      ? `\nPrior chapters (continuity only — do NOT repeat):\n${rolling.slice(-1800)}\n`
       : "";
 
     const tasks = [];
@@ -153,7 +155,7 @@ Begin now.`;
     results.sort((a, b) => a.index - b.index);
     for (const r of results) {
       chapters[r.index] = r.text;
-      rolling = `${rolling}\n\n${r.text}`.slice(-6000);
+      rolling = `${rolling}\n\n${r.text}`.slice(-5000);
     }
   }
 

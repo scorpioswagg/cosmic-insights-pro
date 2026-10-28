@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
@@ -60,6 +60,7 @@ export function ReportsPanel({
   const isAdmin = !!adminInfo?.isAdmin || !!accessInfo?.isAdmin;
   const unlockedIds = new Set(accessInfo?.unlocked ?? []);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
+  const checkoutInFlight = useRef(false);
   const [purchasingBundleId, setPurchasingBundleId] = useState<string | null>(null);
   const [expandedBundleId, setExpandedBundleId] = useState<string | null>(null);
 
@@ -318,7 +319,9 @@ export function ReportsPanel({
   }
 
   async function purchase(reportId: string) {
-    if (purchasingId || purchasingBundleId) return;
+    // Prevent same-tick double clicks before React commits the loading state.
+    if (checkoutInFlight.current) return;
+    checkoutInFlight.current = true;
     analyticsEvent("Checkout Started", { reportId });
     setError(null);
     setPurchasingId(reportId);
@@ -350,6 +353,7 @@ export function ReportsPanel({
       setError(msg);
       toast.error(msg);
     } finally {
+      checkoutInFlight.current = false;
       setPurchasingId(null);
     }
   }
