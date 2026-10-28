@@ -118,7 +118,7 @@ function buildLuxuryReportDoc(
     writeText("Every insight in this reading is drawn from the exact placements below. Nothing is invented.", 10, { italic: true, color: MUTED, gap: 12 });
     writeText("Birth Data", 13, { bold: true, color: INK, gap: 4 });
     writeText(`Name: ${c.input.name}`, 11);
-    writeText(`Date & Time: ${c.input.date} at ${c.input.time}`, 11);
+    writeText(`Date & Time: ${c.input.date} at ${c.input.timeUnknown ? "unknown" : c.input.time}`, 11);
     writeText(`Location: ${c.input.place}`, 11);
     writeText(`Timezone: ${c.input.timezone}`, 11, { gap: 12 });
     writeText("Angles", 13, { bold: true, color: INK, gap: 4 });
@@ -129,6 +129,153 @@ function buildLuxuryReportDoc(
       const house = b.house ? ` \u00B7 House ${b.house}` : "";
       const retro = b.retrograde ? " \u211E" : "";
       writeText(`${b.name.padEnd(12, " ")}  ${b.sign} ${fmtDeg(b.signDegree)}${house}${retro}`, 10.5, { color: BODY, gap: 1 });
+    }
+  };
+
+  const drawChartWheel = (
+    c: ChartCalculation,
+    title: string,
+    centerX = pageW / 2,
+    centerY = pageH / 2 + 18,
+    outerRadius = 195,
+    showHeading = true,
+  ) => {
+    const zodiacInner = outerRadius * 0.82;
+    const houseInner = outerRadius * 0.60;
+    const aspectRadius = outerRadius * 0.53;
+    const planetRadius = outerRadius * 0.70;
+    const toAngle = (longitude: number) => {
+      const degrees = ((180 - (longitude - c.ascendant)) % 360 + 360) % 360;
+      return (degrees * Math.PI) / 180;
+    };
+    const point = (longitude: number, radius: number): [number, number] => {
+      const a = toAngle(longitude);
+      return [centerX + radius * Math.cos(a), centerY - radius * Math.sin(a)];
+    };
+    const signNames = [
+      "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+      "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+    ];
+    const signShort = ["ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG", "CAP", "AQU", "PIS"];
+    const elementColors: Record<string, [number, number, number]> = {
+      Aries: [177, 88, 65], Leo: [177, 88, 65], Sagittarius: [177, 88, 65],
+      Taurus: [93, 126, 89], Virgo: [93, 126, 89], Capricorn: [93, 126, 89],
+      Gemini: [88, 125, 153], Libra: [88, 125, 153], Aquarius: [88, 125, 153],
+      Cancer: [104, 105, 161], Scorpio: [104, 105, 161], Pisces: [104, 105, 161],
+    };
+    const bodyShort: Record<string, string> = {
+      Sun: "SU", Moon: "MO", Mercury: "ME", Venus: "VE", Mars: "MA",
+      Jupiter: "JU", Saturn: "SA", Uranus: "UR", Neptune: "NE", Pluto: "PL",
+      Chiron: "CH", "North Node": "NN", "South Node": "SN", Lilith: "LI",
+      "Part of Fortune": "PF", Vertex: "VX",
+    };
+
+    if (showHeading) {
+      writeText(title, 22, { bold: true, color: GOLD, align: "center", gap: 5 });
+      writeText(c.input.name + "  ·  " + c.input.date + (c.input.timeUnknown ? " · birth time unknown" : " · " + c.input.time), 10, { color: MUTED, align: "center", gap: 8 });
+      hr();
+    }
+
+    // Dark celestial field with a fine double-gold frame.
+    setFill(MIDNIGHT);
+    doc.circle(centerX, centerY, outerRadius + 8, "F");
+    setDraw(GOLD);
+    doc.setLineWidth(1.1);
+    doc.circle(centerX, centerY, outerRadius + 8, "S");
+    setDraw(GOLD_SOFT);
+    doc.setLineWidth(0.45);
+    doc.circle(centerX, centerY, outerRadius, "S");
+    doc.circle(centerX, centerY, zodiacInner, "S");
+    doc.circle(centerX, centerY, houseInner, "S");
+    doc.circle(centerX, centerY, aspectRadius, "S");
+
+    for (let i = 0; i < 12; i++) {
+      const longitude = i * 30;
+      const [x1, y1] = point(longitude, outerRadius);
+      const [x2, y2] = point(longitude, zodiacInner);
+      setDraw([119, 101, 68]);
+      doc.setLineWidth(0.55);
+      doc.line(x1, y1, x2, y2);
+      const [tx, ty] = point(longitude + 15, (outerRadius + zodiacInner) / 2);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(Math.max(6, outerRadius * 0.044));
+      setColor(elementColors[signNames[i]]);
+      doc.text(signShort[i], tx, ty + 2, { align: "center" });
+    }
+
+    c.houses.forEach((cusp, i) => {
+      const [x1, y1] = point(cusp, zodiacInner);
+      const [x2, y2] = point(cusp, houseInner);
+      const angular = i === 0 || i === 3 || i === 6 || i === 9;
+      setDraw(angular ? GOLD : [120, 111, 91]);
+      doc.setLineWidth(angular ? 1.2 : 0.45);
+      doc.line(x1, y1, x2, y2);
+      const [tx, ty] = point(cusp + 3, houseInner * 0.88);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(Math.max(5.5, outerRadius * 0.032));
+      setColor([218, 204, 174]);
+      doc.text(String(i + 1), tx, ty + 2, { align: "center" });
+    });
+
+    const aspectColors: Record<string, [number, number, number]> = {
+      Conjunction: [212, 175, 96],
+      Opposition: [190, 95, 80],
+      Square: [190, 95, 80],
+      Trine: [103, 157, 173],
+      Sextile: [118, 157, 119],
+    };
+    const major = new Set(["Conjunction", "Opposition", "Square", "Trine", "Sextile"]);
+    c.aspects.filter((aspect) => major.has(aspect.type)).slice(0, 35).forEach((aspect) => {
+      const first = c.bodies.find((body) => body.name === aspect.a);
+      const second = c.bodies.find((body) => body.name === aspect.b);
+      if (!first || !second) return;
+      const [x1, y1] = point(first.longitude, aspectRadius);
+      const [x2, y2] = point(second.longitude, aspectRadius);
+      setDraw(aspectColors[aspect.type] ?? GOLD_SOFT);
+      doc.setLineWidth(0.35);
+      doc.line(x1, y1, x2, y2);
+    });
+
+    const visible = c.bodies
+      .filter((body) => bodyShort[body.name] && Number.isFinite(body.longitude))
+      .sort((a, b) => a.longitude - b.longitude);
+    visible.forEach((body, index) => {
+      const [px, py] = point(body.longitude, planetRadius);
+      const labelRadius = planetRadius + (index % 2 === 0 ? outerRadius * 0.055 : -outerRadius * 0.025);
+      const [tx, ty] = point(body.longitude, labelRadius);
+      setDraw(GOLD_SOFT);
+      doc.setLineWidth(0.35);
+      const [lx, ly] = point(body.longitude, zodiacInner);
+      doc.line(lx, ly, tx, ty);
+      setFill([28, 30, 55]);
+      setDraw(GOLD);
+      doc.setLineWidth(0.65);
+      doc.circle(px, py, Math.max(3, outerRadius * 0.018), "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(Math.max(5.5, outerRadius * 0.032));
+      setColor([250, 233, 191]);
+      doc.text(bodyShort[body.name] + (body.retrograde ? " Rx" : ""), tx, ty + 2, { align: "center" });
+    });
+
+    if (!c.input.timeUnknown) {
+      const asc = c.bodies.find((body) => body.name === "Ascendant");
+      const mc = c.bodies.find((body) => body.name === "Midheaven");
+      const markers = [
+        asc ? { label: "ASC", longitude: asc.longitude } : null,
+        mc ? { label: "MC", longitude: mc.longitude } : null,
+      ];
+      markers.forEach((marker) => {
+        if (!marker) return;
+        const [x1, y1] = point(marker.longitude, outerRadius);
+        const [x2, y2] = point(marker.longitude, outerRadius + 11);
+        setDraw(GOLD);
+        doc.setLineWidth(1.2);
+        doc.line(x1, y1, x2, y2);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(Math.max(6, outerRadius * 0.034));
+        setColor(GOLD_SOFT);
+        doc.text(marker.label, x2, y2 - 2, { align: "center" });
+      });
     }
   };
 
@@ -216,6 +363,29 @@ function buildLuxuryReportDoc(
   if (partnerChart) {
     newPage();
     writeNatalSnapshot(partnerChart, "Natal Snapshot — Person B");
+  }
+
+  // VISUAL CHART ATLAS — vector artwork stays crisp at any zoom level.
+  newPage();
+  drawChartWheel(chart, partnerChart ? "Natal Chart · Person A" : "Your Natal Chart");
+  writeText("The outer band shows zodiac signs; the numbered inner ring shows houses; lines inside the wheel represent calculated major aspects.", 9, { color: MUTED, align: "center", maxWidth: maxW - 28, gap: 8 });
+  if (chart.input.timeUnknown) {
+    calloutBox("Birth-time note", "Birth time was not provided. House positions and chart angles are not reliable; this wheel is a solar-sign layout and should not be read as a timed Ascendant chart.");
+  }
+  if (partnerChart) {
+    newPage();
+    drawChartWheel(partnerChart, "Natal Chart · Person B");
+    writeText("The outer band shows zodiac signs; the numbered inner ring shows houses; lines inside the wheel represent calculated major aspects.", 9, { color: MUTED, align: "center", maxWidth: maxW - 28, gap: 8 });
+    if (partnerChart.input.timeUnknown) {
+      calloutBox("Birth-time note", "Birth time was not provided. House positions and chart angles are not reliable; this wheel is a solar-sign layout and should not be read as a timed Ascendant chart.");
+    }
+    newPage();
+    writeText("The Connection · Two-Chart View", 22, { bold: true, color: GOLD, align: "center", gap: 4 });
+    writeText("A visual side-by-side of the two natal charts", 10, { italic: true, color: MUTED, align: "center", gap: 8 });
+    hr();
+    drawChartWheel(chart, chart.input.name, pageW * 0.29, pageH / 2 + 18, 112, false);
+    drawChartWheel(partnerChart, partnerChart.input.name, pageW * 0.71, pageH / 2 + 18, 112, false);
+    writeText("Read each natal chart first, then use the synastry chapters for specific cross-chart contacts. These wheels show each person's natal placements; they are not a composite chart.", 9, { color: MUTED, align: "center", maxWidth: maxW - 20, gap: 8 });
   }
 
   // TOC
