@@ -318,7 +318,7 @@ function buildLuxuryReportDoc(
   doc.setFont("helvetica", "italic");
   doc.setFontSize(10);
   setColor(GOLD_SOFT);
-  doc.text(`${chart.input.date} \u00B7 ${chart.input.time} \u00B7 ${chart.input.place}`, pageW / 2, pageH - 155, { align: "center" });
+  doc.text(`${chart.input.date} \u00B7 ${chart.input.timeUnknown ? "birth time unknown" : chart.input.time} \u00B7 ${chart.input.place}`, pageW / 2, pageH - 155, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   setColor([180, 170, 150]);
