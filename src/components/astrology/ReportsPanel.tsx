@@ -319,7 +319,7 @@ export function ReportsPanel({
   }
 
   async function purchase(reportId: string) {
-    // A ref closes the same-tick double-click gap before React re-renders.
+    // Prevent same-tick double clicks before React commits the loading state.
     if (checkoutInFlight.current) return;
     checkoutInFlight.current = true;
     analyticsEvent("Checkout Started", { reportId });
@@ -445,7 +445,7 @@ export function ReportsPanel({
                     ) : (
                       <button
                         type="button"
-                        disabled={!!purchasingId}
+                        disabled={purchasingId === r.id}
                         onClick={() => purchase(r.id)}
                         className="text-xs uppercase tracking-widest px-3 py-1.5 rounded-md border border-gold/50 text-gold disabled:opacity-50"
                       >
