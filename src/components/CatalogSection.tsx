@@ -43,9 +43,12 @@ function filterReports(tab: number): ReportDefinition[] {
   return [];
 }
 
-export function CatalogSection() {
+export function CatalogSection({ hasChart = false }: { hasChart?: boolean }) {
   const [tab, setTab] = useState(0);
   const reports = filterReports(tab);
+  /** After a chart is calculated, take buyers to the report library; otherwise to the birth form. */
+  const reportCtaHref = hasChart ? "#reports" : "#hook";
+  const reportCtaLabel = hasChart ? "Get Report" : "Calculate & Get Report";
 
   return (
     <section id="catalog" className="px-4 md:px-8 py-16 max-w-5xl mx-auto">
@@ -98,10 +101,10 @@ export function CatalogSection() {
                   {bundle.reportIds.length} reports · was {formatPrice(pricing.listCents)}
                 </p>
                 <a
-                  href="#hook"
+                  href={reportCtaHref}
                   className="text-center text-xs uppercase tracking-wider py-2.5 rounded-lg bg-gold text-primary-foreground hover:opacity-95 transition"
                 >
-                  Calculate chart & unlock
+                  {hasChart ? "Unlock gift set" : "Calculate chart & unlock"}
                 </a>
               </div>
             );
@@ -136,10 +139,10 @@ export function CatalogSection() {
                       Sample
                     </a>
                     <a
-                      href="#hook"
+                      href={reportCtaHref}
                       className="flex-1 text-center text-[11px] uppercase tracking-wider py-2 rounded-lg bg-gold text-primary-foreground hover:opacity-95 transition"
                     >
-                      Get Report
+                      {reportCtaLabel}
                     </a>
                   </div>
                 </div>
@@ -151,10 +154,12 @@ export function CatalogSection() {
           )}
           <p className="text-center text-sm text-muted-foreground mt-8">
             Showing {reports.length} of {REPORTS.length}+ reports.{" "}
-            <a href="#hook" className="text-gold hover:underline">
-              Calculate your chart
+            <a href={reportCtaHref} className="text-gold hover:underline">
+              {hasChart ? "Open your report library" : "Calculate your chart"}
             </a>{" "}
-            to unlock the full library, purchase, and generate any report.
+            {hasChart
+              ? "to purchase and generate any report."
+              : "to unlock the full library, purchase, and generate any report."}
           </p>
         </>
       )}
