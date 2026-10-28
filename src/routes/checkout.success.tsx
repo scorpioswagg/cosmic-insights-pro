@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { getEntitlementStatus } from "@/lib/reports/checkout.functions";
+import { confirmCheckoutSession } from "@/lib/reports/checkout.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/checkout/success")({
@@ -55,13 +56,19 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function CheckoutSuccess() {
-  const { report } = Route.useSearch();
+  const { report, session_id } = Route.useSearch();
   const check = useServerFn(getEntitlementStatus);
+  const confirm = useServerFn(confirmCheckoutSession);
 
   const { data, isError, error } = useQuery({
     queryKey: ["entitlement-status", report],
     enabled: !!report,
-    queryFn: () => check({ data: { reportId: report! } }),
+    queryFn: async () => {
+      if (session_id) {
+        try { await confirm({ data: { sessionId: session_id } }); } catch { /* webhook may still be processing; status below remains authoritative */ }
+      }
+      return check({ data: { reportId: report! } });
+    },
     refetchInterval: (q) => (q.state.data?.unlocked ? false : 2500),
     retry: 3,
   });
