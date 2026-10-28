@@ -7,11 +7,37 @@ function claimEmail(context: { claims?: unknown }): string | null {
   return typeof email === "string" ? email : null;
 }
 
+function checkoutOrigin(context: { claims?: unknown }): string {
+  const claimed = (context.claims as { origin?: unknown } | undefined)?.origin;
+  const configured = typeof process.env.SITE_URL === "string" ? process.env.SITE_URL : "";
+  const candidate =
+    (typeof claimed === "string" && claimed ? claimed : "") ||
+    configured ||
+    "https://yourcosmicblueprint.lovable.app";
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error("Secure checkout is temporarily unavailable. Please contact support.");
+  }
+  if (parsed.protocol !== "https:" && parsed.hostname !== "localhost") {
+    throw new Error("Secure checkout is temporarily unavailable. Please contact support.");
+  }
+  return parsed.origin;
+}
+
+function checkoutRequestId(): string {
+  return crypto.randomUUID();
+}
+
 /** Creates a Stripe Checkout Session for one report. Price is resolved server-side. */
 export const createReportCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ reportId: z.string().min(1).max(64) }).parse(input),
+    z.object({
+      reportId: z.string().min(1).max(64),
+      requestId: z.string().uuid(),
+    }).parse(input),
   )
   .handler(async ({ data, context }) => {
     if ((context.claims as { is_anonymous?: boolean })?.is_anonymous) {
@@ -34,46 +60,51 @@ export const createReportCheckout = createServerFn({ method: "POST" })
       )
       .eq("id", data.reportId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("We couldn't verify the report catalog. Please try again.");
     if (!row) throw new Error("Unknown report.");
     if (!row.is_published) throw new Error("This report is not available.");
     if (row.is_free || row.price_cents <= 0) throw new Error("This report is free.");
 
     const stripe = getStripe();
     const priceId = await ensureStripePrice(stripe, row);
+    const origin = checkoutOrigin(context);
 
-    const origin =
-      (context.claims as { origin?: string })?.origin ??
-      process.env.SITE_URL ??
-      "https://yourcosmicblueprint.lovable.app";
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        allow_promotion_codes: true,
+        line_items: [{ price: priceId, quantity: 1 }],
+        customer_email: email ?? undefined,
+        client_reference_id: context.userId,
+        metadata: {
+          user_id: context.userId,
+          report_id: row.id,
+          report_slug: row.id,
+        },
+        payment_intent_data: {
+          metadata: { user_id: context.userId, report_id: row.id },
+        },
+        success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}&report=${encodeURIComponent(row.id)}`,
+        cancel_url: `${origin}/checkout/cancel?report=${encodeURIComponent(row.id)}`,
+      }, { idempotencyKey: `checkout-report-${context.userId}-${data.reportId}-${data.requestId}` });
+    } catch {
+      throw new Error("We couldn't open secure checkout. Please try again. No report access has changed.");
+    }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      allow_promotion_codes: true,
-      line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: email ?? undefined,
-      client_reference_id: context.userId,
-      metadata: {
-        user_id: context.userId,
-        report_id: row.id,
-        report_slug: row.id,
-      },
-      payment_intent_data: {
-        metadata: { user_id: context.userId, report_id: row.id },
-      },
-      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}&report=${encodeURIComponent(row.id)}`,
-      cancel_url: `${origin}/checkout/cancel?report=${encodeURIComponent(row.id)}`,
-    });
-
-    await supabaseAdmin.from("report_purchases").insert({
+    if (!session.url) throw new Error("Secure checkout is unavailable. Please try again.");
+    const { error: purchaseError } = await supabaseAdmin.from("report_purchases").upsert({
       user_id: context.userId,
       report_id: row.id,
       stripe_session_id: session.id,
-      amount_cents: row.price_cents,
-      currency: row.currency,
+      amount_cents: session.amount_total ?? row.price_cents,
+      currency: session.currency ?? row.currency,
       status: "pending",
       customer_email: email ?? null,
-    });
+    }, { onConflict: "stripe_session_id", ignoreDuplicates: true });
+    if (purchaseError) {
+      throw new Error("We couldn't save your checkout record. Please retry; duplicate sessions are protected.");
+    }
 
     return { alreadyOwned: false as const, url: session.url };
   });
@@ -86,7 +117,6 @@ export const getMyAccess = createServerFn({ method: "GET" })
     const { isAdminUser } = await import("./access.server");
     const admin = await isAdminUser(context.userId, claimEmail(context));
 
-    // Admins own the entire catalog — current reports and anything added later.
     if (admin) {
       const { REPORTS } = await import("@/lib/astrology/reports-catalog");
       const { data: rows } = await supabaseAdmin.from("report_products").select("id");
@@ -111,7 +141,7 @@ export const getMyAccess = createServerFn({ method: "GET" })
     return { isAdmin: admin, unlocked };
   });
 
-/** Polled by the success page until the verified webhook has landed. */
+/** Returns entitlement state after server-side fulfillment. */
 export const getEntitlementStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -119,16 +149,8 @@ export const getEntitlementStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { resolveReportAccess } = await import("./access.server");
-    const access = await resolveReportAccess(
-      context.userId,
-      data.reportId,
-      claimEmail(context),
-    );
-    return {
-      unlocked: access.allowed,
-      reason: access.reason,
-      title: access.title ?? data.reportId,
-    };
+    const access = await resolveReportAccess(context.userId, data.reportId, claimEmail(context));
+    return { unlocked: access.allowed, reason: access.reason, title: access.title ?? data.reportId };
   });
 
 /** The signed-in customer's library. */
@@ -139,51 +161,40 @@ export const getMyReports = createServerFn({ method: "GET" })
     const { isAdminUser } = await import("./access.server");
     const admin = await isAdminUser(context.userId, claimEmail(context));
 
-    // Administrators: the whole catalog is included, forever and for new reports.
     if (admin) {
       const { REPORTS } = await import("@/lib/astrology/reports-catalog");
       const items = REPORTS.map((r) => ({
-        reportId: r.id,
-        source: "admin",
-        grantedAt: null as string | null,
-        title: r.title,
-        tagline: r.tagline,
-        category: r.category,
-        icon: r.icon,
+        reportId: r.id, source: "admin", grantedAt: null as string | null,
+        title: r.title, tagline: r.tagline, category: r.category, icon: r.icon,
       }));
       return { isAdmin: true, items, purchases: [] };
     }
 
     const { data: ents } = await supabaseAdmin
       .from("report_entitlements")
-      .select("report_id, source, granted_at, status")
+      .select("report_id, source, granted_at, status, expires_at")
       .eq("user_id", context.userId)
       .eq("status", "active")
       .order("granted_at", { ascending: false });
+    const activeEnts = (ents ?? []).filter((e) =>
+      !e.expires_at || new Date(e.expires_at).getTime() > Date.now()
+    );
 
-    const ids = (ents ?? []).map((e) => e.report_id);
+    const ids = activeEnts.map((e) => e.report_id);
     const { data: products } = ids.length
-      ? await supabaseAdmin
-          .from("report_products")
-          .select("id, title, tagline, category, icon")
-          .in("id", ids)
+      ? await supabaseAdmin.from("report_products")
+          .select("id, title, tagline, category, icon").in("id", ids)
       : { data: [] as { id: string; title: string; tagline: string; category: string; icon: string }[] };
 
     const byId = new Map((products ?? []).map((p) => [p.id, p]));
-
-    const { data: purchases } = await supabaseAdmin
-      .from("report_purchases")
+    const { data: purchases } = await supabaseAdmin.from("report_purchases")
       .select("report_id, amount_cents, currency, status, created_at")
-      .eq("user_id", context.userId)
-      .eq("status", "paid")
-      .order("created_at", { ascending: false });
+      .eq("user_id", context.userId).eq("status", "paid").order("created_at", { ascending: false });
 
     return {
       isAdmin: admin,
-      items: (ents ?? []).map((e) => ({
-        reportId: e.report_id,
-        source: e.source,
-        grantedAt: e.granted_at,
+      items: activeEnts.map((e) => ({
+        reportId: e.report_id, source: e.source, grantedAt: e.granted_at,
         title: byId.get(e.report_id)?.title ?? e.report_id,
         tagline: byId.get(e.report_id)?.tagline ?? "",
         category: byId.get(e.report_id)?.category ?? "",
