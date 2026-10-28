@@ -371,7 +371,7 @@ function buildLuxuryReportDoc(
   y = pageH / 2 + 18 + 195 + 25;
   writeText("The outer band shows zodiac signs; the numbered inner ring shows houses; lines inside the wheel represent calculated major aspects.", 9, { color: MUTED, align: "center", maxWidth: maxW - 28, gap: 8 });
   if (chart.input.timeUnknown) {
-    calloutBox("Birth-time note", "Birth time was not provided. House positions and chart angles are not reliable; this wheel is a solar-sign layout and should not be read as a timed Ascendant chart.");
+    writeText("Birth time unknown: house positions and chart angles are not reliable. Read this as a solar-sign layout, not a timed Ascendant chart.", 9, { color: MUTED, align: "center", maxWidth: maxW - 28, gap: 8 });
   }
   if (partnerChart) {
     newPage();
