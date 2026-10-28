@@ -24,7 +24,7 @@ export async function claimWebhookEvent(event: Stripe.Event): Promise<boolean> {
   return true;
 }
 
-/** Remove a failed claim so Stripe can safely retry the event. */
+/** Remove a failed claim so Stripe can retry processing this event. */
 export async function releaseWebhookEvent(eventId: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from("stripe_webhook_events")
