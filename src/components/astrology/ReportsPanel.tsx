@@ -325,17 +325,28 @@ export function ReportsPanel({
     analyticsEvent("Checkout Started", { reportId });
     setError(null);
     setPurchasingId(reportId);
+    const key = `cosmic-checkout:report:${reportId}`;
+    let requestId: string;
+    try {
+      const saved = sessionStorage.getItem(key);
+      requestId = saved && /^[0-9a-f-]{36}$/i.test(saved) ? saved : crypto.randomUUID();
+      sessionStorage.setItem(key, requestId);
+    } catch {
+      requestId = crypto.randomUUID();
+    }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session || sessionData.session.user.is_anonymous) {
         throw new Error("Please sign in with Google before purchasing.");
       }
-      const res = await startCheckout({ data: { reportId } });
+      const res = await startCheckout({ data: { reportId, requestId } });
       if (res.alreadyOwned) {
         toast.success("You already own this report.");
         return;
       }
       if (!res.url) throw new Error("Stripe did not return a checkout URL.");
+      // A fresh ID is used only after Stripe returned a working URL; retries reuse the same one.
+      try { sessionStorage.removeItem(key); } catch { /* storage is optional */ }
       window.location.assign(res.url);
     } catch (e) {
       const msg = (e as Error).message || "Could not start checkout.";

@@ -31,16 +31,16 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
         }
 
         const {
-          claimWebhookEvent,
-          releaseWebhookEvent,
+          wasWebhookProcessed,
+          completeWebhookEvent,
           fulfillCheckoutSession,
           markPurchaseFailed,
           refundPurchaseByPaymentIntent,
         } = await import("@/lib/reports/purchase.server");
 
         try {
-          const fresh = await claimWebhookEvent(event);
-          if (!fresh) return Response.json({ received: true, duplicate: true });
+          const processed = await wasWebhookProcessed(event.id);
+          if (processed) return Response.json({ received: true, duplicate: true });
 
           switch (event.type) {
             case "checkout.session.completed":
@@ -51,7 +51,8 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
                 session.payment_status === "no_payment_required" ||
                 event.type === "checkout.session.async_payment_succeeded"
               ) {
-                await fulfillCheckoutSession(session);
+                const result = await fulfillCheckoutSession(session);
+                if (!result.ok) throw new Error("Checkout session metadata is incomplete.");
               }
               break;
             }
@@ -72,14 +73,9 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
             default:
               break;
           }
+          await completeWebhookEvent(event);
         } catch (e) {
           console.error("[stripe-webhook] processing failed", e);
-          // Release the claim on failure so Stripe retries can re-run fulfillment.
-          try {
-            await releaseWebhookEvent(event.id);
-          } catch (releaseError) {
-            console.error("[stripe-webhook] failed to release event claim", releaseError);
-          }
           return new Response("Processing error", { status: 500 });
         }
 

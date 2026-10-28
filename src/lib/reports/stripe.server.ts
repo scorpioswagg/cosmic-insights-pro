@@ -1,5 +1,4 @@
 import Stripe from "stripe";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export function stripeSecret(): string {
   // The project secret was originally saved under a misspelled name; support both.
@@ -21,6 +20,8 @@ export function getStripe(): Stripe {
   return new Stripe(stripeSecret(), {
     apiVersion: "2025-08-27.basil" as Stripe.LatestApiVersion,
     httpClient: Stripe.createFetchHttpClient(),
+    timeout: 20_000,
+    maxNetworkRetries: 1,
   });
 }
 
@@ -37,8 +38,8 @@ export interface CatalogRow {
 }
 
 /**
- * Resolve only the existing Stripe Price assigned to a report.
- * Never create or replace live Stripe products/prices during checkout.
+ * Read-only validation: checkout must use a configured Stripe Price.
+ * Never create or replace live products/prices during a customer checkout.
  */
 export async function ensureStripePrice(
   stripe: Stripe,
@@ -46,7 +47,7 @@ export async function ensureStripePrice(
 ): Promise<string> {
   if (!row.stripe_price_id) {
     throw new Error(
-      `Checkout is not configured for "${row.title}" yet. Please contact support while the existing Stripe price is linked.`,
+      "This report is not configured for secure checkout yet. Please contact Cosmic Blueprint support.",
     );
   }
 
@@ -54,17 +55,22 @@ export async function ensureStripePrice(
   try {
     existing = await stripe.prices.retrieve(row.stripe_price_id);
   } catch {
+    throw new Error("We couldn't verify this report's price. Please try again shortly.");
+  }
+
+  const productId =
+    typeof existing.product === "string" ? existing.product : existing.product.id;
+  if (
+    !existing.active ||
+    existing.type !== "one_time" ||
+    existing.unit_amount !== row.price_cents ||
+    existing.currency.toLowerCase() !== row.currency.toLowerCase() ||
+    (row.stripe_product_id && row.stripe_product_id !== productId)
+  ) {
     throw new Error(
-      `The saved Stripe price for "${row.title}" could not be found. No replacement price was created. Please contact support.`,
+      "This report's checkout price needs review. No payment has been started.",
     );
   }
 
-  if (!existing.active || existing.type !== "one_time") {
-    throw new Error(
-      `The saved Stripe price for "${row.title}" is inactive or not a one-time price. Please contact support.`,
-    );
-  }
-
-  // Stripe remains the source of truth for the actual live charge amount.
   return existing.id;
 }

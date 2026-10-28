@@ -9,27 +9,25 @@ function formatMoney(cents: number, currency: string) {
   }).format(cents / 100);
 }
 
-/** Returns false when this Stripe event was already processed. */
-export async function claimWebhookEvent(event: Stripe.Event): Promise<boolean> {
-  const { error } = await supabaseAdmin.from("stripe_webhook_events").insert({
+/** Check only completed webhook records. Failed/incomplete events remain retryable. */
+export async function wasWebhookProcessed(eventId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("stripe_webhook_events")
+    .select("id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
+/** Mark a webhook complete only after fulfillment succeeds. */
+export async function completeWebhookEvent(event: Stripe.Event): Promise<void> {
+  const { error } = await supabaseAdmin.from("stripe_webhook_events").upsert({
     id: event.id,
     type: event.type,
     payload: { type: event.type, created: event.created } as never,
-  });
-  if (error) {
-    // Unique violation → duplicate delivery.
-    if (error.code === "23505") return false;
-    throw new Error(error.message);
-  }
-  return true;
-}
-
-/** Remove a failed claim so Stripe can retry processing this event. */
-export async function releaseWebhookEvent(eventId: string): Promise<void> {
-  const { error } = await supabaseAdmin
-    .from("stripe_webhook_events")
-    .delete()
-    .eq("id", eventId);
+    processed_at: new Date().toISOString(),
+  }, { onConflict: "id" });
   if (error) throw new Error(error.message);
 }
 
@@ -83,6 +81,10 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     return { ok: false as const, reason: "missing_metadata" };
   }
 
+  if (session.mode !== "payment" || (session.payment_status !== "paid" && session.payment_status !== "no_payment_required")) {
+    return { ok: false as const, reason: "payment_not_complete" };
+  }
+
   const paymentIntent =
     typeof session.payment_intent === "string"
       ? session.payment_intent
@@ -131,7 +133,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       .eq("id", reportId)
       .maybeSingle();
     try {
-      await sendPurchaseReceiptEmail({
+      const receipt = await sendPurchaseReceiptEmail({
         to: purchase.customer_email,
         name: session.customer_details?.name ?? undefined,
         reportTitle: bundleId
@@ -140,10 +142,14 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         amountFormatted: formatMoney(purchase.amount_cents, purchase.currency),
         orderId: purchase.id,
       });
-      await supabaseAdmin
+      if (receipt && typeof receipt === "object" && "ok" in receipt && !receipt.ok) {
+        throw new Error("Purchase receipt delivery failed.");
+      }
+      const { error: emailUpdateError } = await supabaseAdmin
         .from("report_purchases")
         .update({ email_sent_at: new Date().toISOString() })
         .eq("id", purchase.id);
+      if (emailUpdateError) throw new Error(emailUpdateError.message);
     } catch (e) {
       console.error("[stripe] confirmation email failed", e);
     }
@@ -153,26 +159,38 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
 }
 
 export async function markPurchaseFailed(sessionId: string, reason: string) {
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("report_purchases")
     .update({ status: "failed", metadata: { reason } as never })
-    .eq("stripe_session_id", sessionId);
+    .eq("stripe_session_id", sessionId)
+    .eq("status", "pending");
+  if (error) throw new Error(error.message);
 }
 
 export async function refundPurchaseByPaymentIntent(paymentIntentId: string) {
-  const { data: rows } = await supabaseAdmin
+  const { data: rows, error: selectError } = await supabaseAdmin
     .from("report_purchases")
     .select("id, user_id, report_id, metadata")
     .eq("stripe_payment_intent", paymentIntentId);
-  for (const row of rows ?? []) {
-    await supabaseAdmin
+  if (selectError) throw new Error(selectError.message);
+  if (!rows?.length) throw new Error("Refund purchase not recorded yet; retry required.");
+  for (const row of rows) {
+    const { error: updateError } = await supabaseAdmin
       .from("report_purchases")
       .update({ status: "refunded" })
       .eq("id", row.id);
+    if (updateError) throw new Error(updateError.message);
     const meta = (row.metadata ?? {}) as { report_ids?: string[] };
     const ids = Array.isArray(meta.report_ids) && meta.report_ids.length
       ? meta.report_ids
       : [row.report_id];
-    for (const id of ids) await revokeEntitlement(row.user_id, id);
+    for (const id of ids) {
+      const { error: revokeError } = await supabaseAdmin.from("report_entitlements")
+        .update({ status: "revoked" })
+        .eq("user_id", row.user_id)
+        .eq("report_id", id)
+        .eq("purchase_id", row.id);
+      if (revokeError) throw new Error(revokeError.message);
+    }
   }
 }
