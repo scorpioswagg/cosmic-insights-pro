@@ -17,7 +17,6 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { getStripe } = await import("./stripe.server");
     const { getBundle, bundlePricing } = await import("./bundles");
-    const { isAdminUser } = await import("./access.server");
 
     const bundle = getBundle(data.bundleId);
     if (!bundle) throw new Error("Unknown bundle.");
@@ -27,7 +26,8 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
     const email = typeof (context.claims as { email?: unknown }).email === "string"
       ? (context.claims as { email: string }).email
       : undefined;
-    const originCandidate = process.env.SITE_URL ?? "https://yourcosmicblueprint.lovable.app";
+    const claimOrigin = (context.claims as { origin?: unknown }).origin;
+    const originCandidate = (typeof claimOrigin === "string" && claimOrigin.startsWith("https://") ? claimOrigin : "") || process.env.SITE_URL || "https://yourcosmicblueprint.lovable.app";
     let origin: string;
     try {
       const url = new URL(originCandidate);
@@ -41,7 +41,7 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
       .select("id, title, price_cents, currency, is_free, is_published, stripe_price_id, stripe_product_id")
       .eq("id", bundle.id).maybeSingle();
     if (error) throw new Error("We couldn't verify this bundle's catalog entry.");
-    if (!product || !product.is_published || product.is_free || product.price_cents <= 0) {
+    if (!product || !product.is_published || product.is_free || product.price_cents <= 0 || product.price_cents !== pricing.priceCents) {
       throw new Error("This gift bundle is not configured for checkout yet.");
     }
 
