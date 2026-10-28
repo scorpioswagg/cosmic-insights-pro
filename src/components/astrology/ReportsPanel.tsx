@@ -318,15 +318,26 @@ export function ReportsPanel({
   }
 
   async function purchase(reportId: string) {
+    if (purchasingId || purchasingBundleId) return;
     analyticsEvent("Checkout Started", { reportId });
     setError(null);
     setPurchasingId(reportId);
+    // Reuse the same request ID across retries in this tab to prevent duplicate sessions.
+    const key = `cosmic-checkout:report:${reportId}`;
+    let requestId: string;
+    try {
+      const saved = sessionStorage.getItem(key);
+      requestId = saved && /^[0-9a-f-]{36}$/i.test(saved) ? saved : crypto.randomUUID();
+      sessionStorage.setItem(key, requestId);
+    } catch {
+      requestId = crypto.randomUUID();
+    }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session || sessionData.session.user.is_anonymous) {
         throw new Error("Please sign in with Google before purchasing.");
       }
-      const res = await startCheckout({ data: { reportId } });
+      const res = await startCheckout({ data: { reportId, requestId } });
       if (res.alreadyOwned) {
         toast.success("You already own this report.");
         return;
