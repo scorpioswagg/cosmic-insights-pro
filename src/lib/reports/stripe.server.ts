@@ -37,9 +37,8 @@ export interface CatalogRow {
 }
 
 /**
- * Resolve the existing Stripe Price assigned to a report. Stripe is the source
- * of truth for live pricing: checkout must never silently create replacement
- * products/prices or change the price a customer is offered.
+ * Resolve only the existing Stripe Price assigned to a report.
+ * Never create or replace live Stripe products/prices during checkout.
  */
 export async function ensureStripePrice(
   stripe: Stripe,
@@ -66,7 +65,6 @@ export async function ensureStripePrice(
     );
   }
 
-  // Do not compare against report_products.price_cents: Stripe's existing
-  // Price is the source of truth for what the customer will be charged.
+  // Stripe remains the source of truth for the actual live charge amount.
   return existing.id;
 }
