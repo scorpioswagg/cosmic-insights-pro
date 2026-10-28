@@ -126,7 +126,6 @@ export const generateAstroReport = createServerFn({ method: "POST" })
         msg.slice(0, 400),
       );
 
-      // Only blame Lovable credits when we are actually on the Lovable gateway.
       if (
         activeProvider === "lovable-gateway" &&
         (statusCode === 402 || /payment required/i.test(msg) || /credit/i.test(msg))
@@ -136,7 +135,6 @@ export const generateAstroReport = createServerFn({ method: "POST" })
         );
       }
 
-      // Gemini-specific failures (key not visible at runtime, invalid key, model, quota).
       if (activeProvider === "gemini-direct") {
         if (/api key|invalid|unauthorized|401|403|permission/i.test(msg)) {
           throw new Error(
@@ -148,9 +146,7 @@ export const generateAstroReport = createServerFn({ method: "POST" })
             "Gemini quota or rate limit hit. Check Google AI Studio billing/quota, wait, and retry.",
           );
         }
-        throw new Error(
-          `Gemini generation failed: ${msg.slice(0, 280)}`,
-        );
+        throw new Error(`Gemini generation failed: ${msg.slice(0, 280)}`);
       }
 
       if (
@@ -165,42 +161,54 @@ export const generateAstroReport = createServerFn({ method: "POST" })
       throw new Error(msg || "Report generation failed.");
     }
 
-    // Persist the birth date/name used for this chart so the daily lifecycle
-    // worker can trigger the birthday automation without storing birth time.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await (supabaseAdmin.from("profiles") as any).upsert({
-        id: context.userId,
-        birth_date: data.chart.input.date,
-        display_name: data.chart.input.name,
-      }, { onConflict: "id" });
+      await (supabaseAdmin.from("profiles") as any).upsert(
+        {
+          id: context.userId,
+          birth_date: data.chart.input.date,
+          display_name: data.chart.input.name,
+        },
+        { onConflict: "id" },
+      );
     } catch (profileErr) {
       console.warn("[generateAstroReport] lifecycle profile sync failed", profileErr);
     }
 
-    // Fire the published Resend "report.ready" automation only after the report
-    // has been generated successfully. The email failure must never make a
-    // successfully generated report fail.
+    // Fire Resend lifecycle + direct report-ready email (includes founder letter).
+    // Email failure must never fail a successfully generated report.
     if (email) {
+      const siteUrl = (process.env.SITE_URL ?? "https://mycosmicblueprint.online").replace(/\/$/, "");
+      const firstName = data.chart.input.name.trim().split(/\s+/)[0] || "friend";
+      const downloadLink = `${siteUrl}/#report-${data.reportId}`;
       try {
-        const { sendResendLifecycleEvent } = await import("@/lib/email/service.server");
-        const siteUrl = process.env.SITE_URL ?? "https://mycosmicblueprint.online";
-        const pageCount = Math.max(1, (result.markdown.match(/^#{1,3}\\s/gm) ?? []).length);
-        await sendResendLifecycleEvent({
-          event: "report.ready",
-          email,
-          payload: {
-            firstName: data.chart.input.name.trim().split(/\s+/)[0] || "friend",
-            reportName: result.title,
-            orderNumber: `report-${data.reportId}-${Date.now()}`,
-            completedDate: result.generatedAt.slice(0, 10),
-            pageCount,
-            downloadLink: `${siteUrl}/#report-${data.reportId}`,
-            dashboardLink: `${siteUrl}/my-reports`,
-          },
-        });
+        const { sendResendLifecycleEvent, sendReportReadyEmail } = await import(
+          "@/lib/email/service.server"
+        );
+        const pageCount = Math.max(1, (result.markdown.match(/^#{1,3}\s/gm) ?? []).length);
+        await Promise.allSettled([
+          sendResendLifecycleEvent({
+            event: "report.ready",
+            email,
+            payload: {
+              firstName,
+              reportName: result.title,
+              orderNumber: `report-${data.reportId}-${Date.now()}`,
+              completedDate: result.generatedAt.slice(0, 10),
+              pageCount,
+              downloadLink,
+              dashboardLink: `${siteUrl}/my-reports`,
+            },
+          }),
+          sendReportReadyEmail({
+            to: email,
+            name: firstName,
+            reportTitle: result.title,
+            downloadUrl: downloadLink,
+          }),
+        ]);
       } catch (emailErr) {
-        console.error("[generateAstroReport] report.ready event failed", emailErr);
+        console.error("[generateAstroReport] report.ready email failed", emailErr);
       }
     }
 
