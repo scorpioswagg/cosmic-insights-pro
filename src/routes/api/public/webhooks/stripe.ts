@@ -32,6 +32,7 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
 
         const {
           claimWebhookEvent,
+          releaseWebhookEvent,
           fulfillCheckoutSession,
           markPurchaseFailed,
           refundPurchaseByPaymentIntent,
@@ -73,6 +74,12 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
           }
         } catch (e) {
           console.error("[stripe-webhook] processing failed", e);
+          // Release the claim on failure so Stripe retries can re-run fulfillment.
+          try {
+            await releaseWebhookEvent(event.id);
+          } catch (releaseError) {
+            console.error("[stripe-webhook] failed to release event claim", releaseError);
+          }
           return new Response("Processing error", { status: 500 });
         }
 
