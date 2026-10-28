@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type Stripe from "stripe";
 
 function claimEmail(context: { claims?: unknown }): string | null {
   const email = (context.claims as { email?: unknown } | undefined)?.email;
@@ -24,10 +25,6 @@ function checkoutOrigin(context: { claims?: unknown }): string {
     throw new Error("Secure checkout is temporarily unavailable. Please contact support.");
   }
   return parsed.origin;
-}
-
-function checkoutRequestId(): string {
-  return crypto.randomUUID();
 }
 
 /** Creates a Stripe Checkout Session for one report. Price is resolved server-side. */
@@ -107,6 +104,37 @@ export const createReportCheckout = createServerFn({ method: "POST" })
     }
 
     return { alreadyOwned: false as const, url: session.url };
+  });
+
+/** Verify a Stripe Checkout Session belongs to this user and fulfill only a paid session. */
+export const confirmCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ sessionId: z.string().min(10).max(255) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if ((context.claims as { is_anonymous?: boolean })?.is_anonymous) {
+      throw new Error("Please sign in to confirm this purchase.");
+    }
+    const { getStripe } = await import("./stripe.server");
+    const { fulfillCheckoutSession } = await import("./purchase.server");
+    const stripe = getStripe();
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(data.sessionId);
+    } catch {
+      throw new Error("We couldn't verify this checkout session yet.");
+    }
+    if (session.client_reference_id !== context.userId ||
+        session.metadata?.user_id !== context.userId) {
+      throw new Error("This checkout session does not belong to your account.");
+    }
+    if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+      return { confirmed: false as const };
+    }
+    const result = await fulfillCheckoutSession(session);
+    if (!result.ok) throw new Error("This payment needs support review before access can be granted.");
+    return { confirmed: true as const };
   });
 
 /** Access state for every published report, for the signed-in user. */
