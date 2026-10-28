@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type Stripe from "stripe";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type Stripe from "stripe";
 
 function claimEmail(context: { claims?: unknown }): string | null {
   const email = (context.claims as { email?: unknown } | undefined)?.email;
