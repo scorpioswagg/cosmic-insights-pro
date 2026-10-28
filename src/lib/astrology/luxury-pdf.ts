@@ -368,6 +368,7 @@ function buildLuxuryReportDoc(
   // VISUAL CHART ATLAS — vector artwork stays crisp at any zoom level.
   newPage();
   drawChartWheel(chart, partnerChart ? "Natal Chart · Person A" : "Your Natal Chart");
+  y = pageH / 2 + 18 + 195 + 25;
   writeText("The outer band shows zodiac signs; the numbered inner ring shows houses; lines inside the wheel represent calculated major aspects.", 9, { color: MUTED, align: "center", maxWidth: maxW - 28, gap: 8 });
   if (chart.input.timeUnknown) {
     calloutBox("Birth-time note", "Birth time was not provided. House positions and chart angles are not reliable; this wheel is a solar-sign layout and should not be read as a timed Ascendant chart.");
@@ -375,6 +376,7 @@ function buildLuxuryReportDoc(
   if (partnerChart) {
     newPage();
     drawChartWheel(partnerChart, "Natal Chart · Person B");
+    y = pageH / 2 + 18 + 195 + 25;
     writeText("The outer band shows zodiac signs; the numbered inner ring shows houses; lines inside the wheel represent calculated major aspects.", 9, { color: MUTED, align: "center", maxWidth: maxW - 28, gap: 8 });
     if (partnerChart.input.timeUnknown) {
       calloutBox("Birth-time note", "Birth time was not provided. House positions and chart angles are not reliable; this wheel is a solar-sign layout and should not be read as a timed Ascendant chart.");
@@ -385,6 +387,7 @@ function buildLuxuryReportDoc(
     hr();
     drawChartWheel(chart, chart.input.name, pageW * 0.29, pageH / 2 + 18, 112, false);
     drawChartWheel(partnerChart, partnerChart.input.name, pageW * 0.71, pageH / 2 + 18, 112, false);
+    y = pageH / 2 + 18 + 112 + 24;
     writeText("Read each natal chart first, then use the synastry chapters for specific cross-chart contacts. These wheels show each person's natal placements; they are not a composite chart.", 9, { color: MUTED, align: "center", maxWidth: maxW - 20, gap: 8 });
   }
 
