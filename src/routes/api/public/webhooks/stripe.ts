@@ -32,10 +32,10 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
 
         const {
           claimWebhookEvent,
+          releaseWebhookEvent,
           fulfillCheckoutSession,
           markPurchaseFailed,
           refundPurchaseByPaymentIntent,
-          releaseWebhookEvent,
         } = await import("@/lib/reports/purchase.server");
 
         try {
@@ -74,9 +74,7 @@ export const Route = createFileRoute("/api/public/webhooks/stripe")({
           }
         } catch (e) {
           console.error("[stripe-webhook] processing failed", e);
-          // The event was claimed before processing. Release the claim on failure
-          // so Stripe retries can re-run fulfillment instead of being mistaken
-          // for successful duplicate deliveries.
+          // Release the claim on failure so Stripe retries can re-run fulfillment.
           try {
             await releaseWebhookEvent(event.id);
           } catch (releaseError) {
