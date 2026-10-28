@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { getEntitlementStatus } from "@/lib/reports/checkout.functions";
+import { getEntitlementStatus, confirmCheckoutSession } from "@/lib/reports/checkout.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/checkout/success")({
@@ -55,18 +55,35 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function CheckoutSuccess() {
-  const { report } = Route.useSearch();
+  const { report, session_id } = Route.useSearch();
   const check = useServerFn(getEntitlementStatus);
+  const confirm = useServerFn(confirmCheckoutSession);
 
   const { data, isError, error } = useQuery({
-    queryKey: ["entitlement-status", report],
-    enabled: !!report,
-    queryFn: () => check({ data: { reportId: report! } }),
+    queryKey: ["entitlement-status", report, session_id],
+    enabled: !!report || !!session_id,
+    queryFn: async () => {
+      // Prefer direct Stripe session confirm (works even if webhook is delayed/missing).
+      if (session_id) {
+        try {
+          const confirmed = await confirm({
+            data: { sessionId: session_id, reportId: report },
+          });
+          if (confirmed.unlocked) return confirmed;
+        } catch (e) {
+          console.warn("[checkout.success] confirmCheckoutSession failed", e);
+        }
+      }
+      if (report) {
+        return check({ data: { reportId: report } });
+      }
+      return { unlocked: false, reason: "pending", title: "Report" };
+    },
     refetchInterval: (q) => (q.state.data?.unlocked ? false : 2500),
-    retry: 3,
+    retry: 5,
   });
 
-  if (!report) {
+  if (!report && !session_id) {
     return (
       <Shell title="Payment received">
         <p className="text-muted-foreground">
@@ -82,6 +99,9 @@ function CheckoutSuccess() {
       <Shell title="Payment received">
         <p className="text-sm text-muted-foreground">
           We couldn&rsquo;t confirm your access yet: {(error as Error).message}
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          If you were charged, open My Reports in a minute — the webhook may still be processing.
         </p>
         <Link to="/my-reports">
           <Button className="mt-4" variant="outline">Go to My Reports</Button>
@@ -109,7 +129,7 @@ function CheckoutSuccess() {
   }
 
   return (
-    <Shell title="Payment received — we&rsquo;re confirming your purchase">
+    <Shell title="Payment received — confirming your purchase">
       <p className="text-muted-foreground">
         This usually takes just a few seconds. This page updates automatically once
         your payment is verified — you don&rsquo;t need to refresh.
