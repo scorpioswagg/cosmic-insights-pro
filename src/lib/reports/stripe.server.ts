@@ -1,5 +1,4 @@
 import Stripe from "stripe";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export function stripeSecret(): string {
   // The project secret was originally saved under a misspelled name; support both.
@@ -21,6 +20,8 @@ export function getStripe(): Stripe {
   return new Stripe(stripeSecret(), {
     apiVersion: "2025-08-27.basil" as Stripe.LatestApiVersion,
     httpClient: Stripe.createFetchHttpClient(),
+    timeout: 20_000,
+    maxNetworkRetries: 1,
   });
 }
 
@@ -37,57 +38,39 @@ export interface CatalogRow {
 }
 
 /**
- * Resolves (creating if needed) the Stripe Price for a report. The amount is
- * always taken from the database — never from the client.
+ * Read-only validation: checkout must use a configured Stripe Price.
+ * Never create or replace live products/prices during a customer checkout.
  */
 export async function ensureStripePrice(
   stripe: Stripe,
   row: CatalogRow,
 ): Promise<string> {
-  if (row.stripe_price_id) {
-    try {
-      const existing = await stripe.prices.retrieve(row.stripe_price_id);
-      if (
-        existing.active &&
-        existing.unit_amount === row.price_cents &&
-        existing.currency === row.currency
-      ) {
-        return existing.id;
-      }
-    } catch {
-      // fall through and create a fresh price
-    }
+  if (!row.stripe_price_id) {
+    throw new Error(
+      "This report is not configured for secure checkout yet. Please contact Cosmic Blueprint support.",
+    );
   }
 
-  let productId = row.stripe_product_id ?? null;
-  if (productId) {
-    try {
-      const p = await stripe.products.retrieve(productId);
-      if (!p.active) productId = null;
-    } catch {
-      productId = null;
-    }
-  }
-  if (!productId) {
-    const product = await stripe.products.create({
-      name: row.title,
-      description: row.tagline?.slice(0, 300) || undefined,
-      metadata: { report_id: row.id },
-    });
-    productId = product.id;
+  let existing: Stripe.Price;
+  try {
+    existing = await stripe.prices.retrieve(row.stripe_price_id);
+  } catch {
+    throw new Error("We couldn't verify this report's price. Please try again shortly.");
   }
 
-  const price = await stripe.prices.create({
-    product: productId,
-    currency: row.currency,
-    unit_amount: row.price_cents,
-    metadata: { report_id: row.id },
-  });
+  const productId =
+    typeof existing.product === "string" ? existing.product : existing.product.id;
+  if (
+    !existing.active ||
+    existing.type !== "one_time" ||
+    existing.unit_amount !== row.price_cents ||
+    existing.currency.toLowerCase() !== row.currency.toLowerCase() ||
+    (row.stripe_product_id && row.stripe_product_id !== productId)
+  ) {
+    throw new Error(
+      "This report's checkout price needs review. No payment has been started.",
+    );
+  }
 
-  await supabaseAdmin
-    .from("report_products")
-    .update({ stripe_price_id: price.id, stripe_product_id: productId })
-    .eq("id", row.id);
-
-  return price.id;
+  return existing.id;
 }
