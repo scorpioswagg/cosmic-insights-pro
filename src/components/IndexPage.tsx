@@ -119,7 +119,13 @@ export function IndexPage() {
       setChart(c);
       analyticsEvent("Chart Calculated", { mode: input.timeUnknown ? "unknown_time" : "exact_time" });
       requestAnimationFrame(() => {
-        document.getElementById("chart-result")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const preferReports =
+          typeof window !== "undefined" &&
+          (window.location.hash === "#reports" || window.location.hash === "#catalog");
+        const el = preferReports
+          ? document.getElementById("reports") ?? document.getElementById("chart-result")
+          : document.getElementById("chart-result");
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (e) {
       analyticsEvent("Chart Calculation Failed");
@@ -277,7 +283,7 @@ export function IndexPage() {
           </section>
         )}
 
-        <CatalogSection />
+        <CatalogSection hasChart={!!chart} />
 
         <section className="px-4 md:px-8 py-12 max-w-5xl mx-auto">
           <SampleReader />
