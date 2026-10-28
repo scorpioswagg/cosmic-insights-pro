@@ -322,7 +322,6 @@ export function ReportsPanel({
     analyticsEvent("Checkout Started", { reportId });
     setError(null);
     setPurchasingId(reportId);
-    // Reuse the same request ID across retries in this tab to prevent duplicate sessions.
     const key = `cosmic-checkout:report:${reportId}`;
     let requestId: string;
     try {
@@ -343,6 +342,8 @@ export function ReportsPanel({
         return;
       }
       if (!res.url) throw new Error("Stripe did not return a checkout URL.");
+      // A fresh ID is used only after Stripe returned a working URL; retries reuse the same one.
+      try { sessionStorage.removeItem(key); } catch { /* storage is optional */ }
       window.location.assign(res.url);
     } catch (e) {
       const msg = (e as Error).message || "Could not start checkout.";
