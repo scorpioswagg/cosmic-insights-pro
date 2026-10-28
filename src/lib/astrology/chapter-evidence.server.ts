@@ -71,7 +71,16 @@ function toSerial(c: ReportChartInput): SerialChart {
   };
 }
 
-/** Chapter-by-chapter Unfiltered / long-form generation with evidence packets. */
+/**
+ * How many chapters to generate in parallel.
+ * 8 batches a 31-chapter Unfiltered report into ~4 waves instead of ~8.
+ */
+const CHAPTER_PARALLELISM = 8;
+
+/**
+ * Chapter-by-chapter generation with evidence packets.
+ * Runs in parallel batches of CHAPTER_PARALLELISM to cut wall-clock time.
+ */
 export async function generateChapterEvidenceReport(opts: {
   def: ReportDefinition;
   chart: ReportChartInput;
@@ -87,38 +96,34 @@ export async function generateChapterEvidenceReport(opts: {
     synResult = computeSynastry(serialA, serialB);
   }
 
-  const wordsPerChapter = Math.max(140, Math.round(def.targetWords / def.sections.length));
-  const chapters: string[] = [];
+  const wordsPerChapter = Math.max(
+    100,
+    Math.round(def.targetWords / def.sections.length),
+  );
+  const chapters: string[] = new Array(def.sections.length);
   let rolling = "";
 
-  // Generate in small ordered batches of two. Chapters within a batch share
-  // the same prior-context snapshot, then are appended in their original order.
-  // This halves serial model round trips for long reports while bounding
-  // concurrency to avoid an unbounded burst against provider rate limits.
-  for (let batchStart = 0; batchStart < def.sections.length; batchStart += 2) {
-    const priorContext = rolling;
-    const batchIndexes = [batchStart, batchStart + 1].filter(
-      (index) => index < def.sections.length,
-    );
+  const names =
+    def.requiresPartner && partnerChart
+      ? `${chart.input.name} and ${partnerChart.input.name}`
+      : chart.input.name;
 
-    const pieces = await Promise.all(
-      batchIndexes.map(async (i) => {
-        const chapter = def.sections[i];
-        const evidence =
-          def.requiresPartner && serialB && synResult
-            ? synastryEvidence(serialA, serialB, synResult, chapter)
-            : natalEvidence(serialA, chapter);
+  for (let start = 0; start < def.sections.length; start += CHAPTER_PARALLELISM) {
+    const end = Math.min(start + CHAPTER_PARALLELISM, def.sections.length);
+    const batchPrev = rolling
+      ? `\nPrior chapters (continuity only — do NOT repeat):\n${rolling.slice(-1800)}\n`
+      : "";
 
-        const prevNote = priorContext
-          ? `\nPrior chapters (continuity only — do NOT repeat):\n${priorContext.slice(-2800)}\n`
-          : "";
+    const tasks = [];
+    for (let i = start; i < end; i++) {
+      const chapter = def.sections[i];
+      const evidence =
+        def.requiresPartner && serialB && synResult
+          ? synastryEvidence(serialA, serialB, synResult, chapter)
+          : natalEvidence(serialA, chapter);
 
-        const names =
-          def.requiresPartner && partnerChart
-            ? `${chart.input.name} and ${partnerChart.input.name}`
-            : chart.input.name;
-
-        const prompt = `Write CHAPTER ${i + 1} of ${def.sections.length} of **${def.title}** for ${names}.
+      const isFinal = i === def.sections.length - 1;
+      const prompt = `Write CHAPTER ${i + 1} of ${def.sections.length} of **${def.title}** for ${names}.
 
 Exact H2 heading (use this verbatim as ## heading):
 ${chapter}
@@ -128,25 +133,29 @@ Target length: ~${wordsPerChapter} words for this chapter only.
 EVIDENCE PACKET (cite only these factors; do not invent placements):
 ${evidence}
 
-${prevNote}
+${batchPrev}
 Rules for this chapter:
 - Open with a one-line italic "Chart Anchors:" listing the placements/aspects you will use.
 - Every paragraph must cite at least one factor from the evidence packet.
 - Do not write other chapters. No preamble about the whole report.
-- If this is the final chapter and the title implies closure, end with the line: Your chart does not give you an excuse. It gives you a mirror.
+${isFinal ? `- This is the FINAL chapter. End with the line: Your chart does not give you an excuse. It gives you a mirror.` : ""}
 - Write in markdown. Begin with ## ${chapter}
 
 Begin now.`;
 
-        const result = await generateText({ model, system, prompt });
-        return result.text.trim();
-      }),
-    );
+      tasks.push(
+        generateText({ model, system, prompt }).then((result) => ({
+          index: i,
+          text: result.text.trim(),
+        })),
+      );
+    }
 
-    // Promise.all preserves input order, so the final report remains ordered.
-    for (const piece of pieces) {
-      chapters.push(piece);
-      rolling = `${rolling}\n\n${piece}`.slice(-6000);
+    const results = await Promise.all(tasks);
+    results.sort((a, b) => a.index - b.index);
+    for (const r of results) {
+      chapters[r.index] = r.text;
+      rolling = `${rolling}\n\n${r.text}`.slice(-5000);
     }
   }
 
