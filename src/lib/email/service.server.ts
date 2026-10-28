@@ -86,14 +86,15 @@ async function updateLog(id: string | null, patch: Partial<LogInsert>) {
 }
 
 function wrapBrandedHtml(opts: { heading: string; body: string; ctaLabel?: string; ctaHref?: string }): string {
-  const button = opts.ctaLabel && opts.ctaHref
-    ? `<div style="margin:28px 0;text-align:center;">
+  const button =
+    opts.ctaLabel && opts.ctaHref
+      ? `<div style="margin:28px 0;text-align:center;">
          <a href="${escapeHtml(opts.ctaHref)}"
             style="display:inline-block;padding:14px 28px;border-radius:10px;background:${BRAND.gold};color:${BRAND.bg};font-weight:600;text-decoration:none;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;">
            ${escapeHtml(opts.ctaLabel)}
          </a>
        </div>`
-    : "";
+      : "";
   return `<div style="background:${BRAND.bg};padding:32px 0;font-family:Georgia,serif;">
     <div style="max-width:600px;margin:0 auto;background:rgba(255,255,255,0.03);border:1px solid rgba(255,213,106,0.2);border-radius:16px;padding:36px;color:${BRAND.ink};">
       <p style="text-align:center;color:${BRAND.gold};letter-spacing:6px;font-size:11px;text-transform:uppercase;margin:0 0 12px;">Cosmic Blueprint</p>
@@ -277,11 +278,22 @@ export function sendReportReadyEmail(args: {
   reportTitle: string;
   downloadUrl: string;
 }) {
+  const first = escapeHtml(args.name?.trim() || "friend");
+  const title = escapeHtml(args.reportTitle);
   const html = wrapBrandedHtml({
-    heading: `Your ${escapeHtml(args.reportTitle)} is ready`,
-    body: `<p>Dear ${escapeHtml(args.name?.trim() || "friend")},</p>
-           <p>Your personalized <strong style="color:${BRAND.gold};">${escapeHtml(args.reportTitle)}</strong> has been generated and is ready to download.</p>
-           <p style="color:${BRAND.muted};font-size:13px;">Your download link is private and expires soon &mdash; save the PDF to your device once opened.</p>`,
+    heading: `Your ${title} is ready`,
+    body: `<p>Dear ${first},</p>
+           <p>Your personalized <strong style="color:${BRAND.gold};">${title}</strong> has been generated and is ready to download.</p>
+           <p style="color:${BRAND.muted};font-size:13px;">Your download link is private — save the PDF to your device once opened.</p>
+           <hr style="border:none;border-top:1px solid #3a3550;margin:28px 0;" />
+           <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};">A note from the founder</p>
+           <p>First, thank you for becoming part of <em>The Cosmic Blueprint</em> community. Whether you&#39;ve just created a free account or invested in a premium report, I truly appreciate the trust you&#39;ve placed in this project.</p>
+           <p>These reports go far beyond generic horoscope descriptions. They are personalized from your exact Swiss Ephemeris chart — insights into personality, relationships, purpose, life cycles, and the lessons that help you grow.</p>
+           <p>Return to your reports often. As life changes, different sections will speak to you in new ways.</p>
+           <p>Remember: astrology doesn&#39;t replace your free will — it empowers it. The stars reveal possibilities; your choices create your future.</p>
+           <p>May your path be filled with purpose, confidence, growth, and endless possibilities.</p>
+           <p>With gratitude,<br/><strong>Kyle Merritt</strong><br/>Founder, The Cosmic Blueprint</p>
+           <p style="font-style:italic;color:${BRAND.gold};">&#8220;Every chart tells a story. Thank you for allowing The Cosmic Blueprint to help you discover yours.&#8221;</p>`,
     ctaLabel: "Download my report",
     ctaHref: args.downloadUrl,
   });
