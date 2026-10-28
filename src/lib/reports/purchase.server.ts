@@ -9,19 +9,26 @@ function formatMoney(cents: number, currency: string) {
   }).format(cents / 100);
 }
 
-/** Returns false when this Stripe event was already processed. */
-export async function claimWebhookEvent(event: Stripe.Event): Promise<boolean> {
-  const { error } = await supabaseAdmin.from("stripe_webhook_events").insert({
+/** Check only completed webhook records. Failed/incomplete events remain retryable. */
+export async function wasWebhookProcessed(eventId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("stripe_webhook_events")
+    .select("id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
+/** Mark a webhook complete only after fulfillment succeeds. */
+export async function completeWebhookEvent(event: Stripe.Event): Promise<void> {
+  const { error } = await supabaseAdmin.from("stripe_webhook_events").upsert({
     id: event.id,
     type: event.type,
     payload: { type: event.type, created: event.created } as never,
-  });
-  if (error) {
-    // Unique violation → duplicate delivery.
-    if (error.code === "23505") return false;
-    throw new Error(error.message);
-  }
-  return true;
+    processed_at: new Date().toISOString(),
+  }, { onConflict: "id" });
+  if (error) throw new Error(error.message);
 }
 
 export async function grantEntitlement(args: {
@@ -122,7 +129,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       .eq("id", reportId)
       .maybeSingle();
     try {
-      await sendPurchaseReceiptEmail({
+      const receipt = await sendPurchaseReceiptEmail({
         to: purchase.customer_email,
         name: session.customer_details?.name ?? undefined,
         reportTitle: bundleId
@@ -131,10 +138,14 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         amountFormatted: formatMoney(purchase.amount_cents, purchase.currency),
         orderId: purchase.id,
       });
-      await supabaseAdmin
+      if (receipt && typeof receipt === "object" && "ok" in receipt && !receipt.ok) {
+        throw new Error("Purchase receipt delivery failed.");
+      }
+      const { error: emailUpdateError } = await supabaseAdmin
         .from("report_purchases")
         .update({ email_sent_at: new Date().toISOString() })
         .eq("id", purchase.id);
+      if (emailUpdateError) throw new Error(emailUpdateError.message);
     } catch (e) {
       console.error("[stripe] confirmation email failed", e);
     }
@@ -144,10 +155,12 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
 }
 
 export async function markPurchaseFailed(sessionId: string, reason: string) {
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("report_purchases")
     .update({ status: "failed", metadata: { reason } as never })
-    .eq("stripe_session_id", sessionId);
+    .eq("stripe_session_id", sessionId)
+    .eq("status", "pending");
+  if (error) throw new Error(error.message);
 }
 
 export async function refundPurchaseByPaymentIntent(paymentIntentId: string) {
