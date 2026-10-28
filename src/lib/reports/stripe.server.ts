@@ -44,13 +44,15 @@ export async function ensureStripePrice(
   stripe: Stripe,
   row: CatalogRow,
 ): Promise<string> {
+  const currency = row.currency || "usd";
+
   if (row.stripe_price_id) {
     try {
       const existing = await stripe.prices.retrieve(row.stripe_price_id);
       if (
         existing.active &&
         existing.unit_amount === row.price_cents &&
-        existing.currency === row.currency
+        existing.currency === currency
       ) {
         return existing.id;
       }
@@ -79,7 +81,7 @@ export async function ensureStripePrice(
 
   const price = await stripe.prices.create({
     product: productId,
-    currency: row.currency,
+    currency,
     unit_amount: row.price_cents,
     metadata: { report_id: row.id },
   });
