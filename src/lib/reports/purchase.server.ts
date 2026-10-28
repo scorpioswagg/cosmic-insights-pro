@@ -164,19 +164,29 @@ export async function markPurchaseFailed(sessionId: string, reason: string) {
 }
 
 export async function refundPurchaseByPaymentIntent(paymentIntentId: string) {
-  const { data: rows } = await supabaseAdmin
+  const { data: rows, error: selectError } = await supabaseAdmin
     .from("report_purchases")
     .select("id, user_id, report_id, metadata")
     .eq("stripe_payment_intent", paymentIntentId);
-  for (const row of rows ?? []) {
-    await supabaseAdmin
+  if (selectError) throw new Error(selectError.message);
+  if (!rows?.length) throw new Error("Refund purchase not recorded yet; retry required.");
+  for (const row of rows) {
+    const { error: updateError } = await supabaseAdmin
       .from("report_purchases")
       .update({ status: "refunded" })
       .eq("id", row.id);
+    if (updateError) throw new Error(updateError.message);
     const meta = (row.metadata ?? {}) as { report_ids?: string[] };
     const ids = Array.isArray(meta.report_ids) && meta.report_ids.length
       ? meta.report_ids
       : [row.report_id];
-    for (const id of ids) await revokeEntitlement(row.user_id, id);
+    for (const id of ids) {
+      const { error: revokeError } = await supabaseAdmin.from("report_entitlements")
+        .update({ status: "revoked" })
+        .eq("user_id", row.user_id)
+        .eq("report_id", id)
+        .eq("purchase_id", row.id);
+      if (revokeError) throw new Error(revokeError.message);
+    }
   }
 }
