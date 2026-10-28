@@ -4,7 +4,6 @@ import { REPORTS } from "./reports-catalog";
 import { computeSynastry, synastryToPrompt, type SerialChart } from "./synastry";
 import { generateChapterEvidenceReport } from "./chapter-evidence.server";
 
-// Minimal chart shape needed for report generation (subset of ChartCalculation).
 export interface ReportChartInput {
   input: {
     name: string;
@@ -73,7 +72,6 @@ function chartToPrompt(chart: ReportChartInput, label = "") {
 }\n\n${prefix}ASPECTS (top 40 by tightness):\n${aspects}`;
 }
 
-/** Founder letter included in every report from now on. */
 export const FOUNDER_LETTER = `## Letter from the Founder\n\nFirst, thank you.\n\nThank you for becoming part of *The Cosmic Blueprint* community. Whether you've just created your free account or invested in one of our premium reports, I truly appreciate the trust you've placed in this project.\n\nFor thousands of years, people across nearly every civilization have looked toward the heavens searching for meaning. Long before modern science, our ancestors noticed that the movements of the Sun, Moon, and planets seemed to coincide with the rhythms of life here on Earth. Over centuries, those observations evolved into the rich system we now know as astrology—not as a tool to predict every event with certainty, but as a language for understanding ourselves, our relationships, our strengths, our challenges, and the opportunities that shape our journey.\n\nToday, we have something our ancestors never imagined: the ability to combine centuries of astrological wisdom with modern technology. That's exactly why I created The Cosmic Blueprint.\n\nThese reports are designed to go far beyond generic horoscope descriptions. They are personalized specifically for your unique birth chart, offering insights into your personality, your relationships, your purpose, your life cycles, your hidden gifts, and the lessons that can help you grow into the very best version of yourself.\n\nI encourage you to return to your reports often. As life changes, you'll discover that different sections begin to speak to you in new ways. What may seem insignificant today could become one of your greatest sources of clarity months or even years from now.\n\nRemember, astrology doesn't replace your free will—it empowers it.\n\nThe stars may reveal possibilities, but your choices create your future.\n\nNo matter where you are in life right now, you possess incredible potential waiting to be awakened. Every challenge can become wisdom. Every ending creates the space for a new beginning. Every chapter of your story has meaning.\n\nI sincerely hope these reports inspire you, encourage you, and help you discover something extraordinary about yourself.\n\nThank you again for allowing me to be a small part of your journey.\n\nMay your path be filled with purpose, confidence, growth, and endless possibilities.\n\nThe universe has always been speaking.\n\nNow it's your turn to listen.\n\nWith gratitude,\n\n**Kyle Merritt**  \nFounder, The Cosmic Blueprint\n\n> \"Every chart tells a story. Thank you for allowing The Cosmic Blueprint to help you discover yours.\"\n`;
 
 export interface GeneratedReportPayload {
@@ -169,13 +167,13 @@ export async function generateReportMarkdown(input: {
 
   let text: string;
 
-  // Generate substantial multi-section reports chapter-by-chapter. A single model
-  // response can hit an output limit and silently truncate a report (especially
-  // synastry reports with 15–20 required sections). Chapter generation makes the
-  // requested structure deterministic and prevents incomplete PDFs.
+  // Speed vs structure:
+  // - Unfiltered (31 chapters) and ultra-long reports → parallel chapter loop
+  // - Medium reports → both halves in parallel (faster than sequential)
+  // - Everything else → single model call (fastest)
   const useChapterLoop =
     def.category === "Unfiltered Series" ||
-    def.sections.length >= 12 ||
+    def.sections.length >= 25 ||
     (def.targetWords >= 4500 && def.sections.length >= 20);
 
   if (useChapterLoop) {
@@ -186,18 +184,20 @@ export async function generateReportMarkdown(input: {
       system,
       model,
     });
-  } else if (def.targetWords >= 3200 && def.sections.length > 12) {
+  } else if (def.targetWords >= 2800 || def.sections.length > 14) {
     const mid = Math.ceil(def.sections.length / 2);
-    const first = await generateText({
-      model,
-      system,
-      prompt: buildPrompt(def.sections.slice(0, mid), { partOf: [1, 2] }),
-    });
-    const second = await generateText({
-      model,
-      system,
-      prompt: buildPrompt(def.sections.slice(mid), { partOf: [2, 2], previous: first.text }),
-    });
+    const [first, second] = await Promise.all([
+      generateText({
+        model,
+        system,
+        prompt: buildPrompt(def.sections.slice(0, mid), { partOf: [1, 2] }),
+      }),
+      generateText({
+        model,
+        system,
+        prompt: buildPrompt(def.sections.slice(mid), { partOf: [2, 2] }),
+      }),
+    ]);
     text = `${first.text.trim()}\n\n${second.text.trim()}`;
   } else {
     const result = await generateText({ model, system, prompt: buildPrompt(def.sections, {}) });
