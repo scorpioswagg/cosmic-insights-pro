@@ -125,7 +125,7 @@ export const confirmCheckoutSession = createServerFn({ method: "POST" })
     } catch {
       throw new Error("We couldn't verify this checkout session yet.");
     }
-    if (session.client_reference_id !== context.userId ||
+    if (session.mode !== "payment" || session.client_reference_id !== context.userId ||
         session.metadata?.user_id !== context.userId) {
       throw new Error("This checkout session does not belong to your account.");
     }
