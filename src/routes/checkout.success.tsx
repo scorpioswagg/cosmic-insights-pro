@@ -61,7 +61,7 @@ function CheckoutSuccess() {
   const confirm = useServerFn(confirmCheckoutSession);
 
   const { data, isError, error } = useQuery({
-    queryKey: ["entitlement-status", report],
+    queryKey: ["entitlement-status", report, session_id],
     enabled: !!report,
     queryFn: async () => {
       if (session_id) {
