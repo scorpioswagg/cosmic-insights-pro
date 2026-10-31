@@ -118,11 +118,20 @@ Every chapter must open with an italic Chart Anchors line. Every substantive par
       .join("\n\n--- PAIR ---\n\n");
     const names = group.participants.join(", ");
     const words = Math.max(140, Math.round(def.targetWords / def.sections.length));
-    const chapters: string[] = [];
+    const chapters: string[] = new Array(def.sections.length);
+    // Generate independent chapters in bounded parallel batches rather than
+    // waiting for all AI calls one after another.
+    const CHAPTER_PARALLELISM = 12;
     let rolling = "";
-    for (let i = 0; i < def.sections.length; i++) {
-      const chapter = def.sections[i];
-      const prompt = `Write chapter ${i + 1} of ${def.sections.length} of **${def.title}** for ${names}.
+
+    for (let start = 0; start < def.sections.length; start += CHAPTER_PARALLELISM) {
+      const end = Math.min(start + CHAPTER_PARALLELISM, def.sections.length);
+      const priorExcerpt = rolling.slice(-2500);
+      const batch = await Promise.all(
+        Array.from({ length: end - start }, async (_, offset) => {
+          const i = start + offset;
+          const chapter = def.sections[i];
+          const prompt = `Write chapter ${i + 1} of ${def.sections.length} of **${def.title}** for ${names}.
 
 Exact H2 heading:
 ## ${chapter}
@@ -133,31 +142,36 @@ MULTI-CHART EVIDENCE:
 ${pairEvidence}
 
 Prior chapter excerpt (continuity only; do not repeat):
-${rolling.slice(-2500)}
+${priorExcerpt}
 
-Rules: only this chapter; begin with one italic Chart Anchors line; every paragraph cites supplied evidence; do not invent data. If this is chapter 30, provide exactly five numbered Brutal Truths. If chapter 31, end with the required mirror sentence.`;
-      let result;
-      try {
-        result = await generateText({ model, system, prompt });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const statusCode =
-          error && typeof error === "object" && "statusCode" in error
-            ? Number((error as { statusCode?: unknown }).statusCode)
-            : undefined;
-        if (statusCode === 402 || /payment required/i.test(message)) {
-          console.error(
-            `[generateMultiSynastryReport] AI balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
-          );
-          throw new Error(
-            "Report writing is temporarily unavailable because the AI provider balance is exhausted. Set GEMINI_API_KEY to use your own Google billing, or top up Lovable credits.",
-          );
-        }
-        throw error;
+Rules: only this chapter; begin with one italic Chart Anchors line; every paragraph cites supplied evidence; do not invent data. If chapter 30, provide exactly five numbered Brutal Truths. If chapter 31, end with the required mirror sentence.`;
+          try {
+            const result = await generateText({ model, system, prompt });
+            return { index: i, text: result.text.trim() };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            const statusCode =
+              error && typeof error === "object" && "statusCode" in error
+                ? Number((error as { statusCode?: unknown }).statusCode)
+                : undefined;
+            if (statusCode === 402 || /payment required/i.test(message)) {
+              console.error(
+                `[generateMultiSynastryReport] AI balance unavailable for userId=${context.userId}, reportId=${data.reportId}`,
+              );
+              throw new Error(
+                "Report writing is temporarily unavailable because the AI provider balance is exhausted. Set GEMINI_API_KEY to use your own Google billing, or top up Lovable credits.",
+              );
+            }
+            throw error;
+          }
+        }),
+      );
+
+      batch.sort((a, b) => a.index - b.index);
+      for (const item of batch) {
+        chapters[item.index] = item.text;
+        rolling = (rolling + "\\n\\n" + item.text).slice(-6000);
       }
-      const piece = result.text.trim();
-      chapters.push(piece);
-      rolling = (rolling + "\n\n" + piece).slice(-6000);
     }
     return {
       reportId: data.reportId,
