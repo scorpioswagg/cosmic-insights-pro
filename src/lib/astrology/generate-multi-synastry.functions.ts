@@ -100,6 +100,7 @@ export const generateMultiSynastryReport = createServerFn({ method: "POST" })
       if (!p?.adult_consent) throw new Error("ADULT_CONSENT_REQUIRED");
     }
 
+    const generationStartedAt = Date.now();
     const model = resolveWritingModel();
     const charts = data.charts.map(serial);
     const group = computeMultiSynastry(charts);
@@ -173,6 +174,12 @@ Rules: only this chapter; begin with one italic Chart Anchors line; every paragr
         rolling = (rolling + "\\n\\n" + item.text).slice(-6000);
       }
     }
+    console.info("[report-performance]", {
+      reportId: data.reportId,
+      reportType: "multi-synastry",
+      chapterCount: chapters.length,
+      elapsedMs: Date.now() - generationStartedAt,
+    });
     return {
       reportId: data.reportId,
       title: def.title,
