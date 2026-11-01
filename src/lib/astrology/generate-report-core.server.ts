@@ -111,6 +111,7 @@ export async function generateReportMarkdown(input: {
     );
   }
 
+  const generationStartedAt = Date.now();
   const model = resolveWritingModel();
 
   let chartBlock = chartToPrompt(input.chart, def.requiresPartner ? "PERSON A — " : "");
@@ -208,6 +209,14 @@ export async function generateReportMarkdown(input: {
     const result = await generateText({ model, system, prompt: buildPrompt(def.sections, {}) });
     text = result.text;
   }
+
+  console.info("[report-performance]", {
+    reportId: def.id,
+    reportType: def.category === "Unfiltered Series" ? "unfiltered" : def.requiresPartner ? "synastry" : "natal",
+    chapterCount: def.sections.length,
+    generationPath: useChapterLoop ? "parallel-chapters" : def.targetWords >= 2800 || def.sections.length > 14 ? "two-part" : "single-call",
+    elapsedMs: Date.now() - generationStartedAt,
+  });
 
   const natalHeader = def.requiresPartner
     ? `## Natal Charts\n\nThis report is built from the exact Swiss Ephemeris charts of both people. Nothing is invented.\n`
