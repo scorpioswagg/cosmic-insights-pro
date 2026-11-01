@@ -171,7 +171,7 @@ Rules: only this chapter; begin with one italic Chart Anchors line; every paragr
       batch.sort((a, b) => a.index - b.index);
       for (const item of batch) {
         chapters[item.index] = item.text;
-        rolling = (rolling + "\\n\\n" + item.text).slice(-6000);
+        rolling = (rolling + "\n\n" + item.text).slice(-6000);
       }
     }
     console.info("[report-performance]", {
