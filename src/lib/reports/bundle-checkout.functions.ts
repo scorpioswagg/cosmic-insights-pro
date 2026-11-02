@@ -26,6 +26,12 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
     const email = typeof (context.claims as { email?: unknown }).email === "string"
       ? (context.claims as { email: string }).email
       : undefined;
+    const { isAdminUser } = await import("./access.server");
+    if (await isAdminUser(context.userId, email)) {
+      return { url: null, alreadyOwned: true as const };
+    }
+    const { assertCheckoutAvailable } = await import("./checkout-notice.server");
+    await assertCheckoutAvailable();
     const claimOrigin = (context.claims as { origin?: unknown }).origin;
     const originCandidate = (typeof claimOrigin === "string" && claimOrigin.startsWith("https://") ? claimOrigin : "") || process.env.SITE_URL || "https://yourcosmicblueprint.lovable.app";
     let origin: string;

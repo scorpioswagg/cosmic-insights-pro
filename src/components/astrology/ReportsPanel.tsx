@@ -16,6 +16,8 @@ import { GIFT_BUNDLES, bundlePricing } from "@/lib/reports/bundles";
 import { formatPrice } from "@/lib/reports/pricing";
 import { downloadLuxuryReportPdf } from "@/lib/astrology/luxury-pdf";
 import { analyticsEvent } from "@/lib/analytics";
+import { CheckoutNotice, useCheckoutNotice } from "@/components/CheckoutNotice";
+import { Button } from "@/components/ui/button";
 
 interface GeneratedReport {
   reportId: string;
@@ -58,6 +60,7 @@ export function ReportsPanel({
     retry: false,
   });
   const isAdmin = !!adminInfo?.isAdmin || !!accessInfo?.isAdmin;
+  const { settings: checkoutNotice } = useCheckoutNotice();
   const unlockedIds = new Set(accessInfo?.unlocked ?? []);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const checkoutInFlight = useRef(false);
@@ -319,6 +322,10 @@ export function ReportsPanel({
   }
 
   async function purchase(reportId: string) {
+    if (!isAdmin && checkoutNotice.enabled) {
+      setError(checkoutNotice.message);
+      return;
+    }
     // Prevent same-tick double clicks before React commits the loading state.
     if (checkoutInFlight.current) return;
     checkoutInFlight.current = true;
@@ -360,6 +367,7 @@ export function ReportsPanel({
 
   return (
     <section className="space-y-8">
+      <CheckoutNotice surface="report-checkout-only" />
       <div className="text-center">
         <p className="text-xs uppercase tracking-[0.35em] text-gold mb-2">Premium Reports</p>
         <h2 className="font-display text-4xl text-gradient-gold">{visible.length} Astrological Reports</h2>
@@ -454,14 +462,16 @@ export function ReportsPanel({
                         {busy ? "Generating…" : reports[r.id] ? "View" : "Generate report"}
                       </button>
                     ) : (
-                      <button
+                      <Button
                         type="button"
-                        disabled={purchasingId === r.id}
+                        variant="outline"
+                        size="sm"
+                        disabled={purchasingId === r.id || checkoutNotice.enabled}
                         onClick={() => purchase(r.id)}
                         className="text-xs uppercase tracking-widest px-3 py-1.5 rounded-md border border-gold/50 text-gold disabled:opacity-50"
                       >
-                        {purchasingId === r.id ? "Redirecting…" : `Unlock ${priceLabel(r.id) ?? ""}`}
-                      </button>
+                        {checkoutNotice.enabled ? "Checkout unavailable" : purchasingId === r.id ? "Redirecting…" : `Unlock ${priceLabel(r.id) ?? ""}`}
+                      </Button>
                     )}
                     {reports[r.id] && (
                       <>

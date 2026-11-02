@@ -2,6 +2,7 @@ import { useState } from "react";
 import { REPORTS, type ReportDefinition } from "@/lib/astrology/reports-catalog";
 import { GIFT_BUNDLES, bundlePricing } from "@/lib/reports/bundles";
 import { defaultPriceCents, formatPrice } from "@/lib/reports/pricing";
+import { CheckoutNotice } from "@/components/CheckoutNotice";
 
 const TABS = ["Flagship Natal", "Unfiltered (18+)", "Synastry & Love", "Gift Sets"] as const;
 
@@ -56,6 +57,7 @@ export function CatalogSection({ hasChart = false }: { hasChart?: boolean }) {
       <h2 className="font-display text-3xl md:text-4xl text-foreground mb-3">
         150+ Reports. Organized by Depth.
       </h2>
+      <CheckoutNotice surface="report-checkout-only" />
       <p className="text-muted-foreground mb-8 max-w-xl">
         Every report is calculated from your exact astronomical positions. Choose the depth you need.
       </p>

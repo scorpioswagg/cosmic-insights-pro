@@ -50,6 +50,9 @@ export const createReportCheckout = createServerFn({ method: "POST" })
     if (access.reason === "unknown_report") throw new Error("Unknown report.");
     if (access.reason === "unpublished") throw new Error("This report is not available.");
 
+    const { assertCheckoutAvailable } = await import("./checkout-notice.server");
+    await assertCheckoutAvailable();
+
     const { data: row, error } = await supabaseAdmin
       .from("report_products")
       .select(
