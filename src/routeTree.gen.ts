@@ -18,6 +18,7 @@ import { Route as SynastryRouteImport } from './routes/synastry'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
+import { Route as AdminCheckoutRouteImport } from './routes/admin.checkout'
 import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
 import { Route as AdminPurchasesRouteImport } from './routes/admin.purchases'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -74,6 +75,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
 const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
   id: '/admin/administrators',
   path: '/admin/administrators',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCheckoutRoute = AdminCheckoutRouteImport.update({
+  id: '/admin/checkout',
+  path: '/admin/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminEmailsRoute = AdminEmailsRouteImport.update({
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/checkout': typeof AdminCheckoutRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/purchases': typeof AdminPurchasesRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/checkout': typeof AdminCheckoutRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/purchases': typeof AdminPurchasesRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/checkout': typeof AdminCheckoutRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/purchases': typeof AdminPurchasesRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/administrators'
+    | '/admin/checkout'
     | '/admin/emails'
     | '/admin/purchases'
     | '/admin/reports'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/administrators'
+    | '/admin/checkout'
     | '/admin/emails'
     | '/admin/purchases'
     | '/admin/reports'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/administrators'
+    | '/admin/checkout'
     | '/admin/emails'
     | '/admin/purchases'
     | '/admin/reports'
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminAdministratorsRoute: typeof AdminAdministratorsRoute
+  AdminCheckoutRoute: typeof AdminCheckoutRoute
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminPurchasesRoute: typeof AdminPurchasesRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/administrators'
       fullPath: '/admin/administrators'
       preLoaderRoute: typeof AdminAdministratorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/checkout': {
+      id: '/admin/checkout'
+      path: '/admin/checkout'
+      fullPath: '/admin/checkout'
+      preLoaderRoute: typeof AdminCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/emails': {
@@ -429,6 +449,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AdminAdministratorsRoute: AdminAdministratorsRoute,
+  AdminCheckoutRoute: AdminCheckoutRoute,
   AdminEmailsRoute: AdminEmailsRoute,
   AdminPurchasesRoute: AdminPurchasesRoute,
   AdminReportsRoute: AdminReportsRoute,
