@@ -16,6 +16,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { CheckoutNotice } from "@/components/CheckoutNotice";
 
 function NotFoundComponent() {
   return (
@@ -183,9 +184,17 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <CheckoutNotice surface="site-wide" />
+      <CheckoutRouteNotice />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
   );
+}
+
+function CheckoutRouteNotice() {
+  const router = useRouter();
+  return router.state.location.pathname.startsWith("/checkout/")
+    ? <CheckoutNotice surface="report-checkout-only" /> : null;
 }

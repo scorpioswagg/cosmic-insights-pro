@@ -5,6 +5,7 @@ const LINKS = [
   { to: "/admin/purchases", label: "Purchases" },
   { to: "/admin/administrators", label: "Administrators" },
   { to: "/admin/emails", label: "Emails" },
+  { to: "/admin/checkout", label: "Checkout notice" },
 ] as const;
 
 export function AdminNav() {

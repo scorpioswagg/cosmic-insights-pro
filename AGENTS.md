@@ -1,0 +1,3 @@
+# Project architecture rules
+- Checkout notice settings live in a singleton public-read table with no browser write grants; all saves require the existing authenticated, server-verified admin helper before privileged writes, preserving one authorization source.
+- Both report and bundle session-creation functions check fresh notice settings before Stripe operations; scope controls notice placement only, and report generation, entitlements and existing payment fulfillment remain separate.
