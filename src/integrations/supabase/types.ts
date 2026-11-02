@@ -68,6 +68,30 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_notice_settings: {
+        Row: {
+          enabled: boolean
+          id: boolean
+          message: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: boolean
+          message?: string
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: boolean
+          message?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           attempts: number
