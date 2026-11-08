@@ -126,6 +126,15 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     });
   }
 
+  // Queue PDF generation + email delivery (idempotent per session/report).
+  try {
+    const { enqueueDeliveries, wakeDeliveryProcessor } = await import("./delivery.server");
+    await enqueueDeliveries({ sessionId: session.id, purchaseId: purchase.id, userId, reportIds: idsToGrant });
+    await wakeDeliveryProcessor();
+  } catch (e) {
+    console.error("[stripe] report delivery enqueue failed", session.id, e);
+  }
+
   if (!purchase.email_sent_at && purchase.customer_email) {
     const { data: product } = await supabaseAdmin
       .from("report_products")
