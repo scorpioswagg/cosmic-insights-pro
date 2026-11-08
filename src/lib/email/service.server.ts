@@ -277,13 +277,20 @@ export function sendReportReadyEmail(args: {
   name?: string;
   reportTitle: string;
   downloadUrl: string;
+  order?: { orderId: string; amount: string; date: string };
 }) {
   const first = escapeHtml(args.name?.trim() || "friend");
   const title = escapeHtml(args.reportTitle);
+  const orderHtml = args.order
+    ? `<p><span style="color:${BRAND.muted};">Order:</span> ${escapeHtml(args.order.orderId)}<br/>
+         <span style="color:${BRAND.muted};">Date:</span> ${escapeHtml(args.order.date)}<br/>
+         <span style="color:${BRAND.muted};">Amount:</span> ${escapeHtml(args.order.amount)}</p>`
+    : "";
   const html = wrapBrandedHtml({
     heading: `Your ${title} is ready`,
     body: `<p>Dear ${first},</p>
-           <p>Your personalized <strong style="color:${BRAND.gold};">${title}</strong> has been generated and is ready to download.</p>
+           <p>Your personalized <strong style="color:${BRAND.gold};">${title}</strong> has been generated and is ready to download.</p>${orderHtml}
+           <p style="color:${BRAND.muted};font-size:13px;">The download link stays active for 7 days.</p>
            <p style="color:${BRAND.muted};font-size:13px;">Your download link is private — save the PDF to your device once opened.</p>
            <hr style="border:none;border-top:1px solid #3a3550;margin:28px 0;" />
            <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};">A note from the founder</p>
@@ -303,7 +310,7 @@ export function sendReportReadyEmail(args: {
     toName: args.name,
     subject: `Your ${args.reportTitle} is ready`,
     html,
-    metadata: { reportTitle: args.reportTitle },
+    metadata: { reportTitle: args.reportTitle, orderId: args.order?.orderId ?? null },
   });
 }
 

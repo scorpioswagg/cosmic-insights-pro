@@ -8,6 +8,8 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({
     bundleId: z.string().min(1).max(64),
     requestId: z.string().uuid(),
+    chart: z.record(z.string(), z.unknown()).optional(),
+    partnerChart: z.record(z.string(), z.unknown()).nullable().optional(),
   }).parse(input))
   .handler(async ({ data, context }) => {
     if ((context.claims as { is_anonymous?: boolean })?.is_anonymous) {
@@ -93,6 +95,11 @@ export const createBundleCheckout = createServerFn({ method: "POST" })
     if (purchaseError) {
       throw new Error("We couldn't save your checkout record. Please retry; duplicate sessions are protected.");
     }
+    const { recordDeliveryIntents } = await import("./delivery.server");
+    await recordDeliveryIntents({
+      sessionId: session.id, userId: context.userId, reportIds: bundle.reportIds,
+      chart: data.chart, partnerChart: data.partnerChart ?? null,
+    });
     if (!session.url) throw new Error("Secure checkout is unavailable. Please try again.");
     return { url: session.url };
   });

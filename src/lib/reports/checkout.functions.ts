@@ -34,6 +34,8 @@ export const createReportCheckout = createServerFn({ method: "POST" })
     z.object({
       reportId: z.string().min(1).max(64),
       requestId: z.string().uuid(),
+      chart: z.record(z.string(), z.unknown()).optional(),
+      partnerChart: z.record(z.string(), z.unknown()).nullable().optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -105,6 +107,11 @@ export const createReportCheckout = createServerFn({ method: "POST" })
     if (purchaseError) {
       throw new Error("We couldn't save your checkout record. Please retry; duplicate sessions are protected.");
     }
+    const { recordDeliveryIntents } = await import("./delivery.server");
+    await recordDeliveryIntents({
+      sessionId: session.id, userId: context.userId, reportIds: [row.id],
+      chart: data.chart, partnerChart: data.partnerChart ?? null,
+    });
 
     return { alreadyOwned: false as const, url: session.url };
   });

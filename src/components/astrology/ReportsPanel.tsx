@@ -346,7 +346,7 @@ export function ReportsPanel({
       if (!sessionData.session || sessionData.session.user.is_anonymous) {
         throw new Error("Please sign in with Google before purchasing.");
       }
-      const res = await startCheckout({ data: { reportId, requestId } });
+      const res = await startCheckout({ data: { reportId, requestId, chart: chart as never, partnerChart: (partnerChart ?? null) as never } });
       if (res.alreadyOwned) {
         toast.success("You already own this report.");
         return;

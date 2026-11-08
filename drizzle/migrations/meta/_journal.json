@@ -15,6 +15,13 @@
       "when": 1793614446766,
       "tag": "0001_add_checkout_notice_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794158372865,
+      "tag": "0002_report_deliveries",
+      "breakpoints": true
     }
   ]
 }

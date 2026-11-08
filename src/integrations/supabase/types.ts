@@ -140,6 +140,24 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_cron_tokens: {
+        Row: {
+          created_at: string
+          name: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          token?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           adult_consent: boolean
@@ -163,6 +181,71 @@ export type Database = {
           welcome_message_seen?: boolean
         }
         Relationships: []
+      }
+      report_deliveries: {
+        Row: {
+          attempts: number
+          chart_snapshot: Json | null
+          created_at: string
+          email_sent_at: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          next_attempt_at: string
+          partner_snapshot: Json | null
+          pdf_path: string | null
+          purchase_id: string | null
+          report_id: string
+          status: string
+          stripe_session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          chart_snapshot?: Json | null
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          next_attempt_at?: string
+          partner_snapshot?: Json | null
+          pdf_path?: string | null
+          purchase_id?: string | null
+          report_id: string
+          status?: string
+          stripe_session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          chart_snapshot?: Json | null
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          next_attempt_at?: string
+          partner_snapshot?: Json | null
+          pdf_path?: string | null
+          purchase_id?: string | null
+          report_id?: string
+          status?: string
+          stripe_session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_deliveries_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "report_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       report_entitlements: {
         Row: {
@@ -477,6 +560,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_report_delivery: {
+        Args: never
+        Returns: {
+          attempts: number
+          chart_snapshot: Json | null
+          created_at: string
+          email_sent_at: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          next_attempt_at: string
+          partner_snapshot: Json | null
+          pdf_path: string | null
+          purchase_id: string | null
+          report_id: string
+          status: string
+          stripe_session_id: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "report_deliveries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

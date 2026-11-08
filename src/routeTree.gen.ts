@@ -28,6 +28,7 @@ import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiWebhooksResendRouteImport } from './routes/api/webhooks/resend'
+import { Route as ApiPublicDeliveriesProcessRouteImport } from './routes/api/public/deliveries/process'
 import { Route as ApiPublicWebhooksStripeRouteImport } from './routes/api/public/webhooks/stripe'
 
 const IndexRoute = IndexRouteImport.update({
@@ -128,6 +129,12 @@ const ApiWebhooksResendRoute = ApiWebhooksResendRouteImport.update({
   path: '/api/webhooks/resend',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDeliveriesProcessRoute =
+  ApiPublicDeliveriesProcessRouteImport.update({
+    id: '/api/public/deliveries/process',
+    path: '/api/public/deliveries/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksStripeRoute = ApiPublicWebhooksStripeRouteImport.update({
   id: '/api/public/webhooks/stripe',
   path: '/api/public/webhooks/stripe',
@@ -154,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
+  '/api/public/deliveries/process': typeof ApiPublicDeliveriesProcessRoute
   '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
@@ -176,6 +184,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
+  '/api/public/deliveries/process': typeof ApiPublicDeliveriesProcessRoute
   '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
 }
 export interface FileRoutesById {
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/webhooks/resend': typeof ApiWebhooksResendRoute
+  '/api/public/deliveries/process': typeof ApiPublicDeliveriesProcessRoute
   '/api/public/webhooks/stripe': typeof ApiPublicWebhooksStripeRoute
 }
 export interface FileRouteTypes {
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/webhooks/resend'
+    | '/api/public/deliveries/process'
     | '/api/public/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/webhooks/resend'
+    | '/api/public/deliveries/process'
     | '/api/public/webhooks/stripe'
   id:
     | '__root__'
@@ -267,6 +279,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/webhooks/resend'
+    | '/api/public/deliveries/process'
     | '/api/public/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
@@ -290,6 +303,7 @@ export interface RootRouteChildren {
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiWebhooksResendRoute: typeof ApiWebhooksResendRoute
+  ApiPublicDeliveriesProcessRoute: typeof ApiPublicDeliveriesProcessRoute
   ApiPublicWebhooksStripeRoute: typeof ApiPublicWebhooksStripeRoute
 }
 
@@ -428,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksResendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/deliveries/process': {
+      id: '/api/public/deliveries/process'
+      path: '/api/public/deliveries/process'
+      fullPath: '/api/public/deliveries/process'
+      preLoaderRoute: typeof ApiPublicDeliveriesProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/stripe': {
       id: '/api/public/webhooks/stripe'
       path: '/api/public/webhooks/stripe'
@@ -459,6 +480,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiWebhooksResendRoute: ApiWebhooksResendRoute,
+  ApiPublicDeliveriesProcessRoute: ApiPublicDeliveriesProcessRoute,
   ApiPublicWebhooksStripeRoute: ApiPublicWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport
