@@ -203,6 +203,8 @@ export const generateAstroReport = createServerFn({ method: "POST" })
           sendReportReadyEmail({
             to: email,
             name: firstName,
+            reportId: data.reportId,
+            generationId: `${context.userId}:${data.reportId}:${result.generatedAt}`,
             reportTitle: result.title,
             downloadUrl: downloadLink,
           }),

@@ -5,13 +5,13 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
+import { retryDelayMs, retryStatus, safeFailure } from "@/lib/email/delivery-policy";
+import { sendDeliveryFailureAlert } from "@/lib/email/service.server";
 
 const MAX_ATTEMPTS = 5;
 const LINK_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-export function retryDelayMs(attempts: number): number {
-  return Math.min(60 * 60 * 1000, 2 ** Math.max(0, attempts - 1) * 2 * 60 * 1000);
-}
+export { retryDelayMs } from "@/lib/email/delivery-policy";
 
 /** Saved at checkout so the paid report uses the exact chart the customer was viewing. */
 export async function recordDeliveryIntents(args: {
@@ -33,7 +33,10 @@ export async function recordDeliveryIntents(args: {
   const { error } = await supabaseAdmin
     .from("report_deliveries")
     .upsert(rows, { onConflict: "stripe_session_id,report_id", ignoreDuplicates: true });
-  if (error) console.error("[delivery] could not record intent", args.sessionId, error.message);
+  if (error) {
+    await sendDeliveryFailureAlert({ orderId: args.sessionId, reportId: args.reportIds.join(","), failureClass: "delivery_intent", error });
+    throw new Error("Report delivery intent could not be saved.");
+  }
 }
 
 /** Called from fulfillment; safe to repeat. Never resets a sent delivery. */
@@ -136,13 +139,14 @@ export async function processNextDelivery(): Promise<boolean> {
         .from("report-pdfs")
         .upload(pdfPath, bytes, { contentType: "application/pdf", upsert: true });
       if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
-      await supabaseAdmin.from("report_deliveries").update({ pdf_path: pdfPath }).eq("id", job.id);
+      const { error: savedPdf } = await supabaseAdmin.from("report_deliveries").update({ pdf_path: pdfPath }).eq("id", job.id);
+      if (savedPdf) throw new Error("PDF storage state could not be saved.");
     }
 
     if (!job.email_sent_at) {
       const { data: purchase } = await supabaseAdmin
         .from("report_purchases")
-        .select("id, customer_email, amount_cents, currency, created_at")
+        .select("id, customer_email, customer_name, amount_cents, currency, created_at")
         .eq("stripe_session_id", job.stripe_session_id)
         .maybeSingle();
       if (!purchase?.customer_email) throw new Error("No customer email on the purchase.");
@@ -154,6 +158,8 @@ export async function processNextDelivery(): Promise<boolean> {
       const { sendReportReadyEmail } = await import("@/lib/email/service.server");
       const res = await sendReportReadyEmail({
         to: purchase.customer_email,
+        name: purchase.customer_name ?? undefined,
+        reportId: job.report_id,
         reportTitle: def.title,
         downloadUrl: signed.signedUrl,
         order: {
@@ -162,27 +168,36 @@ export async function processNextDelivery(): Promise<boolean> {
           date: new Date(purchase.created_at).toLocaleDateString("en-US", { dateStyle: "long" }),
         },
       });
-      if (res && typeof res === "object" && "ok" in res && !res.ok) throw new Error("Report email delivery failed.");
-      await supabaseAdmin.from("report_deliveries").update({ email_sent_at: new Date().toISOString() }).eq("id", job.id);
+      if (!res.ok) {
+        await sendDeliveryFailureAlert({ orderId: purchase.id, reportId: job.report_id, deliveryId: job.id, failureClass: "report_ready", error: res.error });
+        throw new Error(res.error);
+      }
+      const { error: savedEmail } = await supabaseAdmin.from("report_deliveries").update({ email_sent_at: new Date().toISOString() }).eq("id", job.id);
+      if (savedEmail) throw new Error("Report email state could not be saved.");
     }
 
-    await supabaseAdmin
+    const { error: savedStatus } = await supabaseAdmin
       .from("report_deliveries")
       .update({ status: "sent", last_error: null, locked_at: null })
       .eq("id", job.id);
+    if (savedStatus) throw new Error("Report delivery state could not be saved.");
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = safeFailure(e);
     const attempts = Number(job.attempts) || 1;
+    const attention = e instanceof Error && /requires_attention/.test(e.message);
     console.error("[delivery] failed", { id: job.id, report: job.report_id, attempts, msg });
     await supabaseAdmin
       .from("report_deliveries")
       .update({
-        status: attempts >= MAX_ATTEMPTS ? "failed" : "retry",
+        status: retryStatus(attempts, attention),
         last_error: msg.slice(0, 1000),
         locked_at: null,
         next_attempt_at: new Date(Date.now() + retryDelayMs(attempts)).toISOString(),
       })
       .eq("id", job.id);
+    if (attempts >= MAX_ATTEMPTS || attention) {
+      await sendDeliveryFailureAlert({ orderId: job.purchase_id ?? job.stripe_session_id, reportId: job.report_id, deliveryId: job.id, failureClass: "retry_exhausted", error: e });
+    }
   }
   return true;
 }

@@ -92,6 +92,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          first_attempt_at: string | null
+          id: string
+          idempotency_key: string
+          next_attempt_at: string | null
+          payload: Json
+          resend_id: string | null
+          status: string
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          first_attempt_at?: string | null
+          id?: string
+          idempotency_key: string
+          next_attempt_at?: string | null
+          payload: Json
+          resend_id?: string | null
+          status?: string
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          first_attempt_at?: string | null
+          id?: string
+          idempotency_key?: string
+          next_attempt_at?: string | null
+          payload?: Json
+          resend_id?: string | null
+          status?: string
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           attempts: number
@@ -370,6 +412,7 @@ export type Database = {
           created_at: string
           currency: string
           customer_email: string | null
+          customer_name: string | null
           email_sent_at: string | null
           id: string
           metadata: Json
@@ -386,6 +429,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email?: string | null
+          customer_name?: string | null
           email_sent_at?: string | null
           id?: string
           metadata?: Json
@@ -402,6 +446,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email?: string | null
+          customer_name?: string | null
           email_sent_at?: string | null
           id?: string
           metadata?: Json
@@ -560,6 +605,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_outbox_email: {
+        Args: { email_key: string }
+        Returns: {
+          attempts: number
+          created_at: string
+          first_attempt_at: string | null
+          id: string
+          idempotency_key: string
+          next_attempt_at: string | null
+          payload: Json
+          resend_id: string | null
+          status: string
+          template_name: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "email_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_report_delivery: {
         Args: never
         Returns: {

@@ -8,6 +8,7 @@ import {
   listEntitlements,
   listPurchases,
   listReportGenerations,
+  listReportDeliveries,
   revokeReportAccess,
 } from "@/lib/admin/purchases.functions";
 import { formatPrice } from "@/lib/reports/pricing";
@@ -16,6 +17,13 @@ import { AdminNav } from "@/components/admin/AdminNav";
 
 export const Route = createFileRoute("/admin/purchases")({
   ssr: false,
+  head: () => ({ meta: [
+    { title: "Purchases & delivery tracking | Cosmic Blueprint" },
+    { name: "description", content: "Administrator purchase, report delivery, and failure tracking for Cosmic Blueprint." },
+    { property: "og:title", content: "Cosmic Blueprint administrator delivery tracking" },
+    { property: "og:description", content: "Purchase activity and personalized report delivery status." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   component: PurchasesPage,
   errorComponent: ({ error, reset }) => {
     const router = useRouter();
@@ -51,6 +59,8 @@ function PurchasesPage() {
   const fetchPurchases = useServerFn(listPurchases);
   const fetchEntitlements = useServerFn(listEntitlements);
   const fetchGenerations = useServerFn(listReportGenerations);
+  const fetchDeliveries = useServerFn(listReportDeliveries);
+  const deliveriesQuery = useQuery({ queryKey: ["admin-deliveries"], queryFn: () => fetchDeliveries(), refetchInterval: 30000 });
   const runGrant = useServerFn(grantReportAccess);
   const runRevoke = useServerFn(revokeReportAccess);
   const qc = useQueryClient();
@@ -187,6 +197,27 @@ function PurchasesPage() {
           </table>
         </div>
       )}
+
+      <section className="mb-8">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Report deliveries</h2>
+          <Button variant="outline" size="sm" onClick={() => deliveriesQuery.refetch()} disabled={deliveriesQuery.isFetching}>Refresh</Button>
+        </div>
+        {deliveriesQuery.isLoading ? <p role="status">Loading deliveries…</p> : deliveriesQuery.isError ? <p role="alert" className="text-destructive">You need administrator access to view deliveries, or delivery records are unavailable.</p> : (
+          <div className="overflow-x-auto border rounded-md">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left"><tr>{["Report / order", "Delivery status", "Attempts", "Next attempt", "Attention"].map((label) => <th key={label} className="p-3">{label}</th>)}</tr></thead>
+              <tbody>{(deliveriesQuery.data ?? []).map((d) => <tr key={d.id} className="border-t">
+                <td className="p-3"><div>{d.report_id}</div><div className="text-xs text-muted-foreground break-all">{d.purchase_id ?? d.stripe_session_id}</div></td>
+                <td className="p-3">{d.displayStatus.replaceAll("_", " ")}</td>
+                <td className="p-3">{d.attempts} / 5</td>
+                <td className="p-3 whitespace-nowrap">{["retry", "pending"].includes(d.status) ? new Date(d.next_attempt_at).toLocaleString() : "—"}</td>
+                <td className="p-3">{d.errorSummary ?? "—"}</td>
+              </tr>)}{!deliveriesQuery.data?.length && <tr><td colSpan={5} className="p-4 text-muted-foreground">No report deliveries yet.</td></tr>}</tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <h2 className="mb-2 text-lg font-semibold">Report generations (free & paid)</h2>
       <p className="mb-2 text-xs text-muted-foreground">

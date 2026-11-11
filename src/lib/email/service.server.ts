@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
+import { emailKey, SUPPORT_EMAIL, safeFailure } from "./delivery-policy";
+import { sendStableEmail } from "./outbox.server";
 
 // Cosmic Blueprint brand palette.
 const BRAND = {
@@ -117,10 +119,21 @@ interface SendArgs {
   subject: string;
   html: string;
   metadata?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 async function sendResendEmail(args: SendArgs): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
+  if (args.idempotencyKey) {
+    return sendStableEmail({
+      key: args.idempotencyKey, template: args.templateName, name: args.toName,
+      payload: { from: fromAddress(), to: [args.to], subject: args.subject, html: args.html },
+      send: async (payload, key) => {
+        if (!apiKey) throw new Error("Email service is not configured.");
+        return new Resend(apiKey).emails.send(payload, { idempotencyKey: key });
+      },
+    });
+  }
   const logId = await insertLog({
     template_name: args.templateName,
     recipient_email: args.to,
@@ -251,6 +264,7 @@ export function sendPurchaseReceiptEmail(args: {
   reportTitle: string;
   amountFormatted: string;
   orderId: string;
+  reportId: string;
 }) {
   const html = wrapBrandedHtml({
     heading: "Thank you for your purchase",
@@ -258,12 +272,13 @@ export function sendPurchaseReceiptEmail(args: {
            <p>We&#39;ve received your order for <strong style="color:${BRAND.gold};">${escapeHtml(args.reportTitle)}</strong>.</p>
            <p><span style="color:${BRAND.muted};">Order:</span> ${escapeHtml(args.orderId)}<br/>
               <span style="color:${BRAND.muted};">Amount:</span> ${escapeHtml(args.amountFormatted)}</p>
-           <p>Your personalized report is being prepared and will arrive in a follow-up email shortly.</p>`,
+           <p>Your personalized report is being prepared and will arrive in a follow-up email shortly.</p>${supportHtml()}`,
     ctaLabel: "View my dashboard",
     ctaHref: `${siteUrl()}/`,
   });
   return sendResendEmail({
     templateName: "purchase_receipt",
+    idempotencyKey: emailKey("purchase_receipt", args.orderId, args.reportId),
     to: args.to,
     toName: args.name,
     subject: `Receipt: ${args.reportTitle}`,
@@ -278,6 +293,8 @@ export function sendReportReadyEmail(args: {
   reportTitle: string;
   downloadUrl: string;
   order?: { orderId: string; amount: string; date: string };
+  reportId?: string;
+  generationId?: string;
 }) {
   const first = escapeHtml(args.name?.trim() || "friend");
   const title = escapeHtml(args.reportTitle);
@@ -291,7 +308,7 @@ export function sendReportReadyEmail(args: {
     body: `<p>Dear ${first},</p>
            <p>Your personalized <strong style="color:${BRAND.gold};">${title}</strong> has been generated and is ready to download.</p>${orderHtml}
            <p style="color:${BRAND.muted};font-size:13px;">The download link stays active for 7 days.</p>
-           <p style="color:${BRAND.muted};font-size:13px;">Your download link is private — save the PDF to your device once opened.</p>
+           <p style="color:${BRAND.muted};font-size:13px;">Your download link is private — save the PDF to your device once opened.</p>${supportHtml()}
            <hr style="border:none;border-top:1px solid #3a3550;margin:28px 0;" />
            <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};">A note from the founder</p>
            <p>First, thank you for becoming part of <em>The Cosmic Blueprint</em> community. Whether you&#39;ve just created a free account or invested in a premium report, I truly appreciate the trust you&#39;ve placed in this project.</p>
@@ -306,6 +323,7 @@ export function sendReportReadyEmail(args: {
   });
   return sendResendEmail({
     templateName: "report_ready",
+    idempotencyKey: emailKey("report_ready", args.order?.orderId ?? args.generationId ?? crypto.randomUUID(), args.reportId ?? args.reportTitle),
     to: args.to,
     toName: args.name,
     subject: `Your ${args.reportTitle} is ready`,
@@ -380,6 +398,30 @@ export function sendNewsletterEmail(args: {
 }
 
 export const ORACLE_EMAIL = "oracle@mycosmicblueprint.online";
+
+function supportHtml() {
+  return `<p>Need help? <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND.gold};">${SUPPORT_EMAIL}</a></p>`;
+}
+
+/** Alert failures are audited but never recursively generate another alert. */
+export async function sendDeliveryFailureAlert(args: { orderId: string; reportId: string; deliveryId?: string; failureClass: string; error: unknown }) {
+  try {
+    const result = await sendResendEmail({
+      templateName: "delivery_failure_alert",
+      idempotencyKey: emailKey(`delivery_failure_alert:${args.failureClass}`, args.deliveryId ?? args.orderId, args.reportId),
+      to: process.env.RESEND_ADMIN_EMAIL || SUPPORT_EMAIL,
+      subject: `Delivery requires attention: ${args.reportId}`,
+      html: wrapBrandedHtml({
+        heading: "Delivery requires attention",
+        body: `<p>Order: ${escapeHtml(args.orderId)}<br/>Report: ${escapeHtml(args.reportId)}<br/>Delivery: ${escapeHtml(args.deliveryId ?? "not queued")}<br/>Failure class: ${escapeHtml(args.failureClass)}</p><p>${escapeHtml(safeFailure(args.error))}</p>`,
+        ctaLabel: "Review deliveries", ctaHref: `${siteUrl()}/admin/purchases`,
+      }),
+    });
+    if (!result.ok) console.error("[delivery-alert] Alert not confirmed; check email audit records.");
+  } catch {
+    console.error("[delivery-alert] Alert persistence failed; no recursive alert attempted.");
+  }
+}
 
 export function sendReadingBookingNotification(args: {
   name: string;

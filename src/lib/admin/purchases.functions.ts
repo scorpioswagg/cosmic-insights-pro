@@ -54,7 +54,7 @@ export const listPurchases = createServerFn({ method: "GET" })
     const { data: purchases, error } = await supabaseAdmin
       .from("report_purchases")
       .select(
-        "id, user_id, report_id, amount_cents, currency, status, customer_email, email_sent_at, created_at",
+        "id, user_id, report_id, amount_cents, currency, status, customer_email, customer_name, email_sent_at, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -78,13 +78,29 @@ export const listPurchases = createServerFn({ method: "GET" })
       return {
         ...p,
         reportTitle: titles.get(p.report_id) ?? p.report_id,
-        customerName: u?.name ?? null,
+        customerName: p.customer_name ?? u?.name ?? null,
         customerEmailResolved: p.customer_email || u?.email || null,
         isFreeReport: freeIds.has(p.report_id) || p.amount_cents <= 0,
         emailStatus: p.email_sent_at ? "sent" : p.status === "paid" ? "pending" : "n/a",
         actionAt: p.created_at,
       };
     });
+  });
+
+export const listReportDeliveries = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireAdmin(context.userId, claimEmail(context));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { deliveryLabel, safeFailure } = await import("@/lib/email/delivery-policy");
+    const { data, error } = await supabaseAdmin.from("report_deliveries")
+      .select("id, purchase_id, stripe_session_id, report_id, status, attempts, pdf_path, email_sent_at, last_error, next_attempt_at, updated_at")
+      .order("updated_at", { ascending: false }).limit(200);
+    if (error) throw new Error("Delivery records unavailable.");
+    return (data ?? []).map(({ pdf_path, last_error, ...row }) => ({
+      ...row, displayStatus: deliveryLabel({ ...row, pdf_path }),
+      errorSummary: last_error ? safeFailure(last_error) : null,
+    }));
   });
 
 export const listEntitlements = createServerFn({ method: "GET" })

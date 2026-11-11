@@ -11,6 +11,8 @@ export const Route = createFileRoute("/")({
           "Book-length natal dossiers and forensic synastry calculated with real Swiss Ephemeris astronomical accuracy. Free chart snapshot. 150+ in-depth reports.",
       },
       { property: "og:title", content: "Cosmic Blueprint — Astrology Stripped of Platitudes. Powered by Precision." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Swiss Ephemeris-powered natal and synastry intelligence. No vague positivity.",

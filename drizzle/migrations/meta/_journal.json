@@ -22,6 +22,13 @@
       "when": 1794158372865,
       "tag": "0002_report_deliveries",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794400376911,
+      "tag": "0003_harden_report_email_delivery",
+      "breakpoints": true
     }
   ]
 }

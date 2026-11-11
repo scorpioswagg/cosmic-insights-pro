@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendPurchaseReceiptEmail } from "@/lib/email/service.server";
+import { sendPurchaseReceiptEmail, sendDeliveryFailureAlert } from "@/lib/email/service.server";
 
 function formatMoney(cents: number, currency: string) {
   return new Intl.NumberFormat("en-US", {
@@ -69,6 +69,15 @@ export async function revokeEntitlement(userId: string, reportId: string) {
  * sends the confirmation email once. Safe to call more than once.
  */
 export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
+  try {
+    return await fulfillSession(session);
+  } catch (error) {
+    await sendDeliveryFailureAlert({ orderId: session.id, reportId: session.metadata?.report_id ?? "unknown", failureClass: "fulfillment", error });
+    throw new Error("Purchase fulfillment requires attention; retry required.");
+  }
+}
+
+async function fulfillSession(session: Stripe.Checkout.Session) {
   const reportId = session.metadata?.report_id;
   const userId = session.metadata?.user_id;
   const bundleId = session.metadata?.bundle_id ?? null;
@@ -105,13 +114,14 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         status: "paid",
         customer_email:
           session.customer_details?.email ?? session.customer_email ?? null,
+        ...(session.customer_details?.name ? { customer_name: session.customer_details.name } : {}),
         metadata: (bundleId
           ? { bundle_id: bundleId, report_ids: bundleReportIds }
           : {}) as never,
       },
       { onConflict: "stripe_session_id" },
     )
-    .select("id, email_sent_at, customer_email, amount_cents, currency")
+    .select("id, email_sent_at, customer_email, customer_name, amount_cents, currency")
     .single();
   if (upErr) throw new Error(upErr.message);
 
@@ -132,7 +142,8 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     await enqueueDeliveries({ sessionId: session.id, purchaseId: purchase.id, userId, reportIds: idsToGrant });
     await wakeDeliveryProcessor();
   } catch (e) {
-    console.error("[stripe] report delivery enqueue failed", session.id, e);
+    await sendDeliveryFailureAlert({ orderId: purchase.id, reportId, failureClass: "enqueue", error: e });
+    throw new Error("Report delivery enqueue failed; webhook must retry.");
   }
 
   if (!purchase.email_sent_at && purchase.customer_email) {
@@ -144,7 +155,8 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     try {
       const receipt = await sendPurchaseReceiptEmail({
         to: purchase.customer_email,
-        name: session.customer_details?.name ?? undefined,
+        name: purchase.customer_name ?? undefined,
+        reportId,
         reportTitle: bundleId
           ? `${idsToGrant.length} reports (gift set)`
           : (product?.title ?? reportId),
@@ -152,7 +164,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         orderId: purchase.id,
       });
       if (receipt && typeof receipt === "object" && "ok" in receipt && !receipt.ok) {
-        throw new Error("Purchase receipt delivery failed.");
+        throw new Error(receipt.error);
       }
       const { error: emailUpdateError } = await supabaseAdmin
         .from("report_purchases")
@@ -160,8 +172,11 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         .eq("id", purchase.id);
       if (emailUpdateError) throw new Error(emailUpdateError.message);
     } catch (e) {
-      console.error("[stripe] confirmation email failed", e);
+      await sendDeliveryFailureAlert({ orderId: purchase.id, reportId, failureClass: "purchase_receipt", error: e });
+      throw new Error("Purchase receipt requires attention; retry required.");
     }
+  } else if (!purchase.email_sent_at && !purchase.customer_email) {
+    await sendDeliveryFailureAlert({ orderId: purchase.id, reportId, failureClass: "purchase_receipt", error: new Error("Receipt customer email unavailable") });
   }
 
   return { ok: true as const, purchaseId: purchase.id, reportId, userId };
